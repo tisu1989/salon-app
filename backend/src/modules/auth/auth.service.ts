@@ -15,6 +15,11 @@ import {
 const BCRYPT_ROUNDS = 12;
 const REFRESH_TOKEN_TTL_SECONDS = durationStringToSeconds(env.JWT_REFRESH_EXPIRES_IN);
 
+const MAX_FAILED_LOGIN_ATTEMPTS = 5;
+// A 15-minute window starts on the first failed attempt for an identifier; hitting
+// MAX_FAILED_LOGIN_ATTEMPTS within it blocks further tries until the window expires.
+const LOGIN_LOCKOUT_WINDOW_SECONDS = 15 * 60;
+
 export interface AuthTokens {
   accessToken: string;
   refreshToken: string;
@@ -34,6 +39,10 @@ function refreshTokenKey(staffId: number, jti: string): string {
   return `auth:refresh:${staffId}:${jti}`;
 }
 
+function loginFailuresKey(identifier: string): string {
+  return `auth:login-fails:${identifier}`;
+}
+
 export class AuthService {
   constructor(
     private readonly staffRepo: StaffRepository,
@@ -49,6 +58,17 @@ export class AuthService {
     identifier: string,
     password: string,
   ): Promise<{ staff: AuthenticatedStaff; tokens: AuthTokens }> {
+    const failuresKey = loginFailuresKey(identifier);
+
+    const failedAttempts = Number(await this.redis.get(failuresKey)) || 0;
+    if (failedAttempts >= MAX_FAILED_LOGIN_ATTEMPTS) {
+      throw new AppError(
+        "TOO_MANY_ATTEMPTS",
+        "Too many failed login attempts. Please try again in a few minutes.",
+        429,
+      );
+    }
+
     const staff = await this.staffRepo.findByIdentifier(identifier);
 
     // Same error for "no such account" and "wrong password" - don't leak which one it was.
@@ -56,16 +76,28 @@ export class AuthService {
       new AppError("INVALID_CREDENTIALS", "Incorrect phone/email or password.", 401);
 
     if (!staff || !staff.isActive) {
+      await this.recordFailedLogin(failuresKey);
       throw invalidCredentials();
     }
 
     const passwordMatches = await bcrypt.compare(password, staff.passwordHash);
     if (!passwordMatches) {
+      await this.recordFailedLogin(failuresKey);
       throw invalidCredentials();
     }
 
+    // A correct password always clears any prior failures for this identifier.
+    await this.redis.del(failuresKey);
+
     const tokens = await this.issueTokens(staff.id, staff.role);
     return { staff: toPublicStaff(staff), tokens };
+  }
+
+  private async recordFailedLogin(key: string): Promise<void> {
+    const attemptsInWindow = await this.redis.incr(key);
+    if (attemptsInWindow === 1) {
+      await this.redis.expire(key, LOGIN_LOCKOUT_WINDOW_SECONDS);
+    }
   }
 
   /**
