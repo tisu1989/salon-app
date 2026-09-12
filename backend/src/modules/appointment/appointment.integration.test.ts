@@ -163,3 +163,88 @@ describe("appointment booking flow", () => {
     expect(notifications[0]).toMatchObject({ type: "CONFIRMATION" });
   });
 });
+
+/** Books a fresh appointment end-to-end and returns its id, for tests that only care what happens next. */
+async function bookTestAppointment(
+  phoneSuffix: string,
+): Promise<{ appointmentId: number; token: string }> {
+  const staff = await createStaff(prisma, { phone: `+90000000${phoneSuffix}0`, role: "STAFF" });
+  await createWorkingHoursAllWeek(prisma, staff.id);
+  const service = await createService(prisma, { durationMinutes: 30 });
+  const customer = await createCustomer(prisma, { phone: `+90000000${phoneSuffix}1` });
+  const token = await loginAs(app, `+90000000${phoneSuffix}0`);
+  const date = daysFromNow(1).toISOString();
+
+  const { body: availability } = await request(app)
+    .get("/api/v1/appointments/availability")
+    .query({ staffId: staff.id, serviceId: service.id, date })
+    .set("Authorization", `Bearer ${token}`);
+  const slot = availability.slots[0];
+
+  const booked = await request(app)
+    .post("/api/v1/appointments")
+    .set("Authorization", `Bearer ${token}`)
+    .send({
+      customerId: customer.id,
+      staffId: staff.id,
+      serviceId: service.id,
+      startTime: slot.start,
+      endTime: slot.end,
+    });
+
+  return { appointmentId: booked.body.appointment.id as number, token };
+}
+
+describe("appointment status transitions", () => {
+  it("marks a booked appointment as completed", async () => {
+    const { appointmentId, token } = await bookTestAppointment("40");
+
+    const res = await request(app)
+      .patch(`/api/v1/appointments/${appointmentId}/complete`)
+      .set("Authorization", `Bearer ${token}`);
+
+    expect(res.status).toBe(200);
+    expect(res.body.appointment.status).toBe("COMPLETED");
+  });
+
+  it("marks a booked appointment as a no-show", async () => {
+    const { appointmentId, token } = await bookTestAppointment("41");
+
+    const res = await request(app)
+      .patch(`/api/v1/appointments/${appointmentId}/no-show`)
+      .set("Authorization", `Bearer ${token}`);
+
+    expect(res.status).toBe(200);
+    expect(res.body.appointment.status).toBe("NO_SHOW");
+  });
+
+  it("rejects completing an appointment that was already cancelled", async () => {
+    const { appointmentId, token } = await bookTestAppointment("42");
+
+    await request(app)
+      .patch(`/api/v1/appointments/${appointmentId}/cancel`)
+      .set("Authorization", `Bearer ${token}`);
+
+    const res = await request(app)
+      .patch(`/api/v1/appointments/${appointmentId}/complete`)
+      .set("Authorization", `Bearer ${token}`);
+
+    expect(res.status).toBe(409);
+    expect(res.body.code).toBe("INVALID_STATUS_TRANSITION");
+  });
+
+  it("rejects cancelling an appointment that was already completed", async () => {
+    const { appointmentId, token } = await bookTestAppointment("43");
+
+    await request(app)
+      .patch(`/api/v1/appointments/${appointmentId}/complete`)
+      .set("Authorization", `Bearer ${token}`);
+
+    const res = await request(app)
+      .patch(`/api/v1/appointments/${appointmentId}/cancel`)
+      .set("Authorization", `Bearer ${token}`);
+
+    expect(res.status).toBe(409);
+    expect(res.body.code).toBe("INVALID_STATUS_TRANSITION");
+  });
+});

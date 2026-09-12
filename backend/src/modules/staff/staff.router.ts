@@ -4,7 +4,12 @@ import { authorize } from "../../middleware/authorize.js";
 import { validateBody } from "../../middleware/validate.js";
 import { asyncHandler } from "../../utils/async-handler.js";
 import type { StaffController } from "./staff.controller.js";
-import { createStaffSchema, createTimeOffSchema, setWorkingHoursSchema } from "./staff.dto.js";
+import {
+  createStaffSchema,
+  createTimeOffSchema,
+  setWorkingHoursSchema,
+  updateStaffSchema,
+} from "./staff.dto.js";
 
 export function createStaffRouter(controller: StaffController): Router {
   const router = Router();
@@ -20,6 +25,14 @@ export function createStaffRouter(controller: StaffController): Router {
     validateBody(createStaffSchema),
     asyncHandler(controller.create),
   );
+
+  router.patch(
+    "/:id",
+    authorize("ADMIN"),
+    validateBody(updateStaffSchema),
+    asyncHandler(controller.update),
+  );
+  router.patch("/:id/deactivate", authorize("ADMIN"), asyncHandler(controller.deactivate));
 
   // Anyone signed in can view a schedule (needed to show availability), but only
   // admins can change it - schedule changes affect what customers can book.

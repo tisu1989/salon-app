@@ -1,4 +1,11 @@
-import type { PrismaClient, Role, Staff, TimeOff, WorkingHours } from "@prisma/client";
+import {
+  Prisma,
+  type PrismaClient,
+  type Role,
+  type Staff,
+  type TimeOff,
+  type WorkingHours,
+} from "@prisma/client";
 
 export interface CreateStaffInput {
   name: string;
@@ -6,6 +13,16 @@ export interface CreateStaffInput {
   email?: string;
   passwordHash: string;
   role: Role;
+}
+
+// Deliberately no explicit `| undefined` - Prisma's own generated update types
+// don't allow it either under exactOptionalPropertyTypes, so callers must omit
+// a key entirely rather than pass it as undefined (see staff.controller.ts's
+// `omitUndefined` helper, used at the DTO -> this-input boundary).
+export interface UpdateStaffInput {
+  name?: string;
+  email?: string | null;
+  isActive?: boolean;
 }
 
 export class StaffRepository {
@@ -28,6 +45,22 @@ export class StaffRepository {
 
   async create(input: CreateStaffInput): Promise<Staff> {
     return this.db.staff.create({ data: input });
+  }
+
+  /** Returns null if the staff member doesn't exist - callers decide whether that's a 404. */
+  async update(staffId: number, input: UpdateStaffInput): Promise<Staff | null> {
+    try {
+      return await this.db.staff.update({ where: { id: staffId }, data: input });
+    } catch (err) {
+      if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2025") {
+        return null;
+      }
+      throw err;
+    }
+  }
+
+  async setActive(staffId: number, isActive: boolean): Promise<Staff | null> {
+    return this.update(staffId, { isActive });
   }
 
   async getWorkingHours(staffId: number): Promise<WorkingHours[]> {

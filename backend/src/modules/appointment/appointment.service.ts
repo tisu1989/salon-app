@@ -1,10 +1,24 @@
-import type { Appointment } from "@prisma/client";
+import type { Appointment, AppointmentStatus } from "@prisma/client";
 import { AppError } from "../../middleware/error-handler.js";
 import type { ServiceRepository } from "../service/service.repository.js";
 import type { StaffRepository } from "../staff/staff.repository.js";
 import type { NotificationRepository } from "../notification/notification.repository.js";
 import { getAvailableSlots, type TimeRange } from "./availability.js";
 import type { AppointmentRepository, CreateAppointmentInput } from "./appointment.repository.js";
+
+/**
+ * Which statuses an appointment can move to from each current status. Kept as
+ * data rather than scattered if-checks so adding a future status (or loosening
+ * a rule) is a one-line table edit, not a hunt through every method that
+ * touches status. Terminal statuses (empty array) can't be left at all.
+ */
+const ALLOWED_TRANSITIONS: Record<AppointmentStatus, AppointmentStatus[]> = {
+  BOOKED: ["CONFIRMED", "CANCELLED", "COMPLETED", "NO_SHOW"],
+  CONFIRMED: ["CANCELLED", "COMPLETED", "NO_SHOW"],
+  CANCELLED: [],
+  COMPLETED: [],
+  NO_SHOW: [],
+};
 
 export class AppointmentService {
   constructor(
@@ -89,6 +103,23 @@ export class AppointmentService {
 
   /** Cancels a booked appointment, freeing its slot back up. */
   async cancel(appointmentId: number): Promise<Appointment> {
+    return this.transitionStatus(appointmentId, "CANCELLED");
+  }
+
+  /** Marks an appointment as completed - the service was actually delivered. */
+  async markCompleted(appointmentId: number): Promise<Appointment> {
+    return this.transitionStatus(appointmentId, "COMPLETED");
+  }
+
+  /** Marks an appointment as a no-show - the customer never turned up. */
+  async markNoShow(appointmentId: number): Promise<Appointment> {
+    return this.transitionStatus(appointmentId, "NO_SHOW");
+  }
+
+  private async transitionStatus(
+    appointmentId: number,
+    to: AppointmentStatus,
+  ): Promise<Appointment> {
     const appointment = await this.appointmentRepo.findById(appointmentId);
     if (!appointment) {
       throw new AppError(
@@ -98,17 +129,20 @@ export class AppointmentService {
       );
     }
 
-    if (appointment.status === "CANCELLED") {
+    // Already there - treat as a no-op success rather than an error (e.g.
+    // cancelling something twice shouldn't fail just because it's idempotent).
+    if (appointment.status === to) {
       return appointment;
     }
-    if (appointment.status === "COMPLETED" || appointment.status === "NO_SHOW") {
+
+    if (!ALLOWED_TRANSITIONS[appointment.status].includes(to)) {
       throw new AppError(
-        "APPOINTMENT_NOT_CANCELLABLE",
-        `Cannot cancel an appointment that is already ${appointment.status}.`,
+        "INVALID_STATUS_TRANSITION",
+        `Cannot change status from ${appointment.status} to ${to}.`,
         409,
       );
     }
 
-    return this.appointmentRepo.updateStatus(appointmentId, "CANCELLED");
+    return this.appointmentRepo.updateStatus(appointmentId, to);
   }
 }

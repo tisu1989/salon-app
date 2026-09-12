@@ -26,6 +26,8 @@ export function createAppointmentRouter(controller: AppointmentController): Rout
   router.post("/", validateBody(createAppointmentSchema), asyncHandler(controller.book));
 
   router.patch("/:id/cancel", asyncHandler(controller.cancel));
+  router.patch("/:id/complete", asyncHandler(controller.complete));
+  router.patch("/:id/no-show", asyncHandler(controller.noShow));
 
   return router;
 }

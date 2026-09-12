@@ -1,8 +1,14 @@
 import type { Request, Response } from "express";
+import type { Staff } from "@prisma/client";
 import { AppError } from "../../middleware/error-handler.js";
 import type { AuthService } from "../auth/auth.service.js";
 import type { StaffRepository } from "./staff.repository.js";
-import type { CreateStaffDto, CreateTimeOffDto, SetWorkingHoursDto } from "./staff.dto.js";
+import type {
+  CreateStaffDto,
+  CreateTimeOffDto,
+  SetWorkingHoursDto,
+  UpdateStaffDto,
+} from "./staff.dto.js";
 
 /** Shared by every handler here that takes a staff id from the URL. */
 function parseStaffId(req: Request): number {
@@ -13,6 +19,18 @@ function parseStaffId(req: Request): number {
   return staffId;
 }
 
+// Allowlist fields explicitly - never let passwordHash reach the client.
+function toSafeStaff(s: Staff) {
+  return {
+    id: s.id,
+    name: s.name,
+    phone: s.phone,
+    email: s.email,
+    role: s.role,
+    isActive: s.isActive,
+  };
+}
+
 export class StaffController {
   constructor(
     private readonly staffRepo: StaffRepository,
@@ -21,16 +39,7 @@ export class StaffController {
 
   listActive = async (_req: Request, res: Response): Promise<void> => {
     const staff = await this.staffRepo.findAllActive();
-    // Allowlist fields explicitly - never let passwordHash reach the client.
-    const safeStaff = staff.map((s) => ({
-      id: s.id,
-      name: s.name,
-      phone: s.phone,
-      email: s.email,
-      role: s.role,
-      isActive: s.isActive,
-    }));
-    res.status(200).json({ staff: safeStaff });
+    res.status(200).json({ staff: staff.map(toSafeStaff) });
   };
 
   /** Admin-only: provisions a login for a new staff member. */
@@ -46,16 +55,38 @@ export class StaffController {
       role: dto.role,
     });
 
-    res.status(201).json({
-      staff: {
-        id: staff.id,
-        name: staff.name,
-        phone: staff.phone,
-        email: staff.email,
-        role: staff.role,
-        isActive: staff.isActive,
-      },
+    res.status(201).json({ staff: toSafeStaff(staff) });
+  };
+
+  /** Admin-only: edits name/email. Role and password changes deliberately go through other endpoints. */
+  update = async (req: Request, res: Response): Promise<void> => {
+    const staffId = parseStaffId(req);
+    const dto = req.body as UpdateStaffDto;
+
+    // Omit rather than pass `undefined` through - exactOptionalPropertyTypes
+    // treats "key present with value undefined" and "key absent" as distinct,
+    // and Prisma's update() input only accepts the latter.
+    const staff = await this.staffRepo.update(staffId, {
+      ...(dto.name !== undefined && { name: dto.name }),
+      ...(dto.email !== undefined && { email: dto.email }),
     });
+    if (!staff) {
+      throw new AppError("STAFF_NOT_FOUND", `Staff ${staffId} does not exist`, 404);
+    }
+
+    res.status(200).json({ staff: toSafeStaff(staff) });
+  };
+
+  /** Admin-only: soft-deletes a staff member (e.g. they've left) - existing appointments are untouched. */
+  deactivate = async (req: Request, res: Response): Promise<void> => {
+    const staffId = parseStaffId(req);
+
+    const staff = await this.staffRepo.setActive(staffId, false);
+    if (!staff) {
+      throw new AppError("STAFF_NOT_FOUND", `Staff ${staffId} does not exist`, 404);
+    }
+
+    res.status(200).json({ staff: toSafeStaff(staff) });
   };
 
   getWorkingHours = async (req: Request, res: Response): Promise<void> => {

@@ -8,6 +8,14 @@ import type {
   ListAppointmentsQueryDto,
 } from "./appointment.dto.js";
 
+function parseAppointmentId(req: Request): number {
+  const appointmentId = Number(req.params.id);
+  if (!Number.isInteger(appointmentId) || appointmentId <= 0) {
+    throw new AppError("VALIDATION_ERROR", "id must be a positive integer", 400);
+  }
+  return appointmentId;
+}
+
 export class AppointmentController {
   constructor(private readonly appointmentService: AppointmentService) {}
 
@@ -37,12 +45,17 @@ export class AppointmentController {
   };
 
   cancel = async (req: Request, res: Response): Promise<void> => {
-    const appointmentId = Number(req.params.id);
-    if (!Number.isInteger(appointmentId) || appointmentId <= 0) {
-      throw new AppError("VALIDATION_ERROR", "id must be a positive integer", 400);
-    }
+    const appointment = await this.appointmentService.cancel(parseAppointmentId(req));
+    res.status(200).json({ appointment });
+  };
 
-    const appointment = await this.appointmentService.cancel(appointmentId);
+  complete = async (req: Request, res: Response): Promise<void> => {
+    const appointment = await this.appointmentService.markCompleted(parseAppointmentId(req));
+    res.status(200).json({ appointment });
+  };
+
+  noShow = async (req: Request, res: Response): Promise<void> => {
+    const appointment = await this.appointmentService.markNoShow(parseAppointmentId(req));
     res.status(200).json({ appointment });
   };
 }
