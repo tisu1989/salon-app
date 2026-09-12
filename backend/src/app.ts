@@ -4,6 +4,10 @@ import helmet from "helmet";
 import { pinoHttp } from "pino-http";
 import { errorHandler } from "./middleware/error-handler.js";
 import { controllers } from "./container.js";
+import { prisma } from "./config/prisma.js";
+import { redis } from "./config/redis.js";
+import { checkHealth } from "./health-check.js";
+import { asyncHandler } from "./utils/async-handler.js";
 import { createAuthRouter } from "./modules/auth/auth.router.js";
 import { createAppointmentRouter } from "./modules/appointment/appointment.router.js";
 import { createStaffRouter } from "./modules/staff/staff.router.js";
@@ -27,9 +31,13 @@ export function createApp(): Express {
   );
   app.use(pinoHttp());
 
-  app.get("/health", (_req, res) => {
-    res.json({ status: "ok" });
-  });
+  app.get(
+    "/health",
+    asyncHandler(async (_req, res) => {
+      const result = await checkHealth(prisma, redis);
+      res.status(result.status === "ok" ? 200 : 503).json(result);
+    }),
+  );
 
   app.use("/api/v1/auth", createAuthRouter(controllers.auth));
   app.use("/api/v1/appointments", createAppointmentRouter(controllers.appointment));
