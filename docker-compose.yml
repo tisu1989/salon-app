@@ -10,7 +10,7 @@ services:
       MYSQL_USER: salon
       MYSQL_PASSWORD: salonpass
     ports:
-      - "3306:3306"
+      - "3308:3306"
     volumes:
       - mysql_data:/var/lib/mysql
     healthcheck:
