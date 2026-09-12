@@ -1,0 +1,25 @@
+# Dev-mode override - layer this on top of docker-compose.yml to get the same
+# hot-reload behavior `npm run dev` has on the host, but running inside Docker:
+#   docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d api
+#
+# Bind-mounts your live source into the container and runs `tsx watch` instead
+# of the compiled dist/ - saving a file restarts the server and shows up in
+# `docker compose logs -f api` within a second or two. This trades away the
+# "exactly what production runs" guarantee the base setup has; use the base
+# file alone (no -f docker-compose.dev.yml) when you want that guarantee back.
+services:
+  api:
+    command: ["npm", "run", "dev"]
+    environment:
+      NODE_ENV: development
+      # tsx's file watcher needs polling to reliably see changes through a
+      # Docker Desktop bind mount on Windows - native filesystem events don't
+      # always propagate across that boundary.
+      CHOKIDAR_USEPOLLING: "true"
+      CHOKIDAR_INTERVAL: "300"
+    volumes:
+      - ./backend:/app
+      # Anonymous volume so the container's own (Linux-built) node_modules
+      # isn't shadowed by the host's ./backend/node_modules bind mount above -
+      # those are two different platforms' native binaries.
+      - /app/node_modules
