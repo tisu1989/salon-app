@@ -27,13 +27,22 @@ import { WhatsappClient } from "./modules/whatsapp/whatsapp.client.js";
 import { WhatsappService } from "./modules/whatsapp/whatsapp.service.js";
 import { WhatsappController } from "./modules/whatsapp/whatsapp.controller.js";
 
+import { NotificationRepository } from "./modules/notification/notification.repository.js";
+import { NotificationService } from "./modules/notification/notification.service.js";
+
 const staffRepo = new StaffRepository(prisma);
 const serviceRepo = new ServiceRepository(prisma);
 const appointmentRepo = new AppointmentRepository(prisma);
 const customerRepo = new CustomerRepository(prisma);
+const notificationRepo = new NotificationRepository(prisma);
 
 const authService = new AuthService(staffRepo, redis);
-const appointmentService = new AppointmentService(appointmentRepo, staffRepo, serviceRepo);
+const appointmentService = new AppointmentService(
+  appointmentRepo,
+  staffRepo,
+  serviceRepo,
+  notificationRepo,
+);
 
 const whatsappSessions = new WhatsappSessionStore(redis);
 const whatsappClient = new WhatsappClient();
@@ -53,4 +62,9 @@ export const controllers = {
   service: new ServiceController(serviceRepo),
   customer: new CustomerController(customerRepo),
   whatsapp: new WhatsappController(whatsappService),
+};
+
+// Not part of the HTTP surface - server.ts hands this to startNotificationWorker.
+export const services = {
+  notification: new NotificationService(notificationRepo, whatsappClient),
 };

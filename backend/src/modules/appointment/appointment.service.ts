@@ -2,6 +2,7 @@ import type { Appointment } from "@prisma/client";
 import { AppError } from "../../middleware/error-handler.js";
 import type { ServiceRepository } from "../service/service.repository.js";
 import type { StaffRepository } from "../staff/staff.repository.js";
+import type { NotificationRepository } from "../notification/notification.repository.js";
 import { getAvailableSlots, type TimeRange } from "./availability.js";
 import type { AppointmentRepository, CreateAppointmentInput } from "./appointment.repository.js";
 
@@ -10,6 +11,7 @@ export class AppointmentService {
     private readonly appointmentRepo: AppointmentRepository,
     private readonly staffRepo: StaffRepository,
     private readonly serviceRepo: ServiceRepository,
+    private readonly notificationRepo: NotificationRepository,
   ) {}
 
   /**
@@ -64,7 +66,15 @@ export class AppointmentService {
       );
     }
 
-    return this.appointmentRepo.create(input);
+    const appointment = await this.appointmentRepo.create(input);
+
+    // WhatsApp bookings already get an in-conversation confirmation from the bot
+    // itself - queuing another one here would send the customer a duplicate message.
+    if (input.source === "STAFF") {
+      await this.notificationRepo.create({ appointmentId: appointment.id, type: "CONFIRMATION" });
+    }
+
+    return appointment;
   }
 
   /** Every appointment on a staff member's calendar for one day, any status - for a day-view screen. */
