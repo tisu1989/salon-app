@@ -1,0 +1,151 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  STAFF
+  ADMIN
+}
+
+enum AppointmentStatus {
+  BOOKED
+  CONFIRMED
+  COMPLETED
+  CANCELLED
+  NO_SHOW
+}
+
+enum AppointmentSource {
+  WHATSAPP
+  STAFF
+}
+
+model Staff {
+  id           Int       @id @default(autoincrement())
+  name         String
+  phone        String    @unique
+  email        String?   @unique
+  passwordHash String
+  role         Role      @default(STAFF)
+  isActive     Boolean   @default(true)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  workingHours  WorkingHours[]
+  timeOff       TimeOff[]
+  appointments  Appointment[]      @relation("StaffAppointments")
+  createdByMe   Appointment[]      @relation("CreatedByStaff")
+
+  @@map("staff")
+}
+
+model WorkingHours {
+  id        Int      @id @default(autoincrement())
+  staffId   Int
+  dayOfWeek Int      // 0 = Sunday ... 6 = Saturday
+  startTime String   // "09:00" - stored as string, parsed alongside date at query time
+  endTime   String   // "18:00"
+
+  staff Staff @relation(fields: [staffId], references: [id], onDelete: Cascade)
+
+  @@unique([staffId, dayOfWeek])
+  @@map("working_hours")
+}
+
+model TimeOff {
+  id            Int      @id @default(autoincrement())
+  staffId       Int
+  startDateTime DateTime
+  endDateTime   DateTime
+  reason        String?
+  createdAt     DateTime @default(now())
+
+  staff Staff @relation(fields: [staffId], references: [id], onDelete: Cascade)
+
+  @@index([staffId, startDateTime, endDateTime])
+  @@map("time_off")
+}
+
+model Service {
+  id              Int      @id @default(autoincrement())
+  name            String
+  category        String?
+  durationMinutes Int
+  price           Decimal  @db.Decimal(10, 2)
+  isActive        Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  appointments Appointment[]
+
+  @@map("services")
+}
+
+model Customer {
+  id        Int      @id @default(autoincrement())
+  name      String
+  phone     String   @unique
+  createdAt DateTime @default(now())
+
+  appointments Appointment[]
+
+  @@map("customers")
+}
+
+model Appointment {
+  id          Int               @id @default(autoincrement())
+  customerId  Int
+  staffId     Int
+  serviceId   Int
+  startTime   DateTime
+  endTime     DateTime
+  status      AppointmentStatus @default(BOOKED)
+  source      AppointmentSource
+  createdById Int?              // staff.id if booked manually; null for WhatsApp bookings
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+
+  customer  Customer @relation(fields: [customerId], references: [id])
+  staff     Staff    @relation("StaffAppointments", fields: [staffId], references: [id])
+  service   Service  @relation(fields: [serviceId], references: [id])
+  createdBy Staff?   @relation("CreatedByStaff", fields: [createdById], references: [id])
+
+  notifications NotificationLog[]
+
+  // Speeds up the availability/overlap check: "find appointments for this staff in this time range"
+  @@index([staffId, startTime, endTime])
+  @@index([customerId])
+  @@map("appointments")
+}
+
+enum NotificationType {
+  CONFIRMATION
+  REMINDER
+}
+
+enum NotificationStatus {
+  PENDING
+  SENT
+  FAILED
+}
+
+model NotificationLog {
+  id            Int                @id @default(autoincrement())
+  appointmentId Int
+  type          NotificationType
+  status        NotificationStatus @default(PENDING)
+  sentAt        DateTime?
+  createdAt     DateTime           @default(now())
+
+  appointment Appointment @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
+
+  @@map("notification_logs")
+}
+
+// BotSession (WhatsApp conversation state) intentionally lives in Redis, not here -
+// it's ephemeral and TTL-based, not relational data.
