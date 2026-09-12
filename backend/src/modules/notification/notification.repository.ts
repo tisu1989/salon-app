@@ -66,8 +66,16 @@ export class NotificationRepository {
     });
   }
 
-  async markFailed(id: number): Promise<void> {
-    await this.db.notificationLog.update({ where: { id }, data: { status: "FAILED" } });
+  /**
+   * Records a failed send attempt. `giveUp` (the caller's call, based on the
+   * retry policy) decides whether this stays PENDING for another try later or
+   * moves to the terminal FAILED status.
+   */
+  async recordFailedAttempt(id: number, attempts: number, giveUp: boolean): Promise<void> {
+    await this.db.notificationLog.update({
+      where: { id },
+      data: { attempts, lastAttemptAt: new Date(), status: giveUp ? "FAILED" : "PENDING" },
+    });
   }
 
   /** BOOKED/CONFIRMED appointments starting within the window that don't have a REMINDER queued yet. */

@@ -5,6 +5,7 @@ import type {
   NotificationRepository,
   NotificationWithAppointment,
 } from "./notification.repository.js";
+import { hasExceededMaxAttempts, isDueForRetry } from "./retry-policy.js";
 
 /** How far ahead of an appointment its reminder gets queued. */
 const REMINDER_WINDOW_HOURS = 2;
@@ -37,14 +38,17 @@ export class NotificationService {
   }
 
   /**
-   * Fallback path: sends every notification still PENDING. Runs on the 60s poll
-   * tick, so under normal conditions it finds nothing - the pub/sub subscriber
-   * (sendById) already got there first. This is what catches anything the
-   * subscriber missed (e.g. it wasn't running when the row was published).
+   * Fallback path: sends every notification still PENDING and due (first-time
+   * sends are always due; a previously-failed one waits out its backoff first).
+   * Runs on the 60s poll tick, so under normal conditions this finds only
+   * genuine first-time sends - the pub/sub subscriber (sendById) already got
+   * there first for those. This is what catches anything the subscriber
+   * missed, and what actually retries a failed send later.
    */
   async sendPending(): Promise<void> {
     const pending = await this.notificationRepo.findPending();
-    for (const notification of pending) {
+    const due = pending.filter((n) => isDueForRetry(n.attempts, n.lastAttemptAt));
+    for (const notification of due) {
       await this.sendOne(notification);
     }
   }
@@ -72,8 +76,14 @@ export class NotificationService {
       );
       await this.notificationRepo.markSent(notification.id);
     } catch (err) {
-      console.error(`Failed to send ${notification.type} notification ${notification.id}:`, err);
-      await this.notificationRepo.markFailed(notification.id);
+      const attempts = notification.attempts + 1;
+      const giveUp = hasExceededMaxAttempts(attempts);
+      console.error(
+        `Failed to send ${notification.type} notification ${notification.id} ` +
+          `(attempt ${attempts}${giveUp ? ", giving up" : ", will retry"}):`,
+        err,
+      );
+      await this.notificationRepo.recordFailedAttempt(notification.id, attempts, giveUp);
     }
   }
 

@@ -139,6 +139,8 @@ model NotificationLog {
   appointmentId Int
   type          NotificationType
   status        NotificationStatus @default(PENDING)
+  attempts      Int                @default(0)
+  lastAttemptAt DateTime?
   sentAt        DateTime?
   createdAt     DateTime           @default(now())
 
