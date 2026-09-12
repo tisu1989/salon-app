@@ -1,4 +1,6 @@
 import { Prisma, type Appointment, type NotificationType, type PrismaClient } from "@prisma/client";
+import type { Redis } from "ioredis";
+import { NOTIFICATION_CHANNEL } from "./notification.channel.js";
 
 export interface CreateNotificationInput {
   appointmentId: number;
@@ -17,10 +19,27 @@ export type NotificationWithAppointment = Prisma.NotificationLogGetPayload<{
 }>;
 
 export class NotificationRepository {
-  constructor(private readonly db: PrismaClient) {}
+  constructor(
+    private readonly db: PrismaClient,
+    private readonly redis: Redis,
+  ) {}
 
+  /**
+   * Writes the row (the durable source of truth - this is what the poll fallback
+   * reads) and publishes its id for instant delivery. Publish is fire-and-forget:
+   * if nothing's subscribed right now, the 60s poll worker still picks this row
+   * up later, so a missed publish is a latency blip, not a lost notification.
+   */
   async create(input: CreateNotificationInput): Promise<void> {
-    await this.db.notificationLog.create({ data: input });
+    const notification = await this.db.notificationLog.create({ data: input });
+    await this.redis.publish(NOTIFICATION_CHANNEL, JSON.stringify({ id: notification.id }));
+  }
+
+  async findById(id: number): Promise<NotificationWithAppointment | null> {
+    return this.db.notificationLog.findUnique({
+      where: { id },
+      include: notificationWithAppointmentInclude,
+    });
   }
 
   /**

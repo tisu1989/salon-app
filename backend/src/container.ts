@@ -34,7 +34,7 @@ const staffRepo = new StaffRepository(prisma);
 const serviceRepo = new ServiceRepository(prisma);
 const appointmentRepo = new AppointmentRepository(prisma);
 const customerRepo = new CustomerRepository(prisma);
-const notificationRepo = new NotificationRepository(prisma);
+const notificationRepo = new NotificationRepository(prisma, redis);
 
 const authService = new AuthService(staffRepo, redis);
 const appointmentService = new AppointmentService(

@@ -36,21 +36,44 @@ export class NotificationService {
     }
   }
 
-  /** Sends every pending notification (confirmations queued at booking time, reminders queued above). */
+  /**
+   * Fallback path: sends every notification still PENDING. Runs on the 60s poll
+   * tick, so under normal conditions it finds nothing - the pub/sub subscriber
+   * (sendById) already got there first. This is what catches anything the
+   * subscriber missed (e.g. it wasn't running when the row was published).
+   */
   async sendPending(): Promise<void> {
     const pending = await this.notificationRepo.findPending();
-
     for (const notification of pending) {
-      try {
-        await this.whatsappClient.sendTextMessage(
-          notification.appointment.customer.phone,
-          this.buildMessage(notification),
-        );
-        await this.notificationRepo.markSent(notification.id);
-      } catch (err) {
-        console.error(`Failed to send ${notification.type} notification ${notification.id}:`, err);
-        await this.notificationRepo.markFailed(notification.id);
-      }
+      await this.sendOne(notification);
+    }
+  }
+
+  /**
+   * Fast path: called by the pub/sub subscriber the instant a notification is
+   * published. Re-checks the row is still PENDING first - if sendPending's poll
+   * already claimed it (or it's since been sent by an earlier publish), this is
+   * a no-op instead of a duplicate WhatsApp message. Single-process, low-volume
+   * app: this optimistic check is enough, no distributed lock needed.
+   */
+  async sendById(id: number): Promise<void> {
+    const notification = await this.notificationRepo.findById(id);
+    if (!notification || notification.status !== "PENDING") {
+      return;
+    }
+    await this.sendOne(notification);
+  }
+
+  private async sendOne(notification: NotificationWithAppointment): Promise<void> {
+    try {
+      await this.whatsappClient.sendTextMessage(
+        notification.appointment.customer.phone,
+        this.buildMessage(notification),
+      );
+      await this.notificationRepo.markSent(notification.id);
+    } catch (err) {
+      console.error(`Failed to send ${notification.type} notification ${notification.id}:`, err);
+      await this.notificationRepo.markFailed(notification.id);
     }
   }
 
