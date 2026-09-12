@@ -6,4 +6,8 @@ export class ServiceRepository {
   async findById(serviceId: number): Promise<Service | null> {
     return this.db.service.findUnique({ where: { id: serviceId } });
   }
+
+  async findAllActive(): Promise<Service[]> {
+    return this.db.service.findMany({ where: { isActive: true }, orderBy: { name: "asc" } });
+  }
 }

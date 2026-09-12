@@ -66,4 +66,39 @@ export class AppointmentService {
 
     return this.appointmentRepo.create(input);
   }
+
+  /** Every appointment on a staff member's calendar for one day, any status - for a day-view screen. */
+  async listForStaffAndDate(staffId: number, date: Date): Promise<Appointment[]> {
+    const dayStart = new Date(date);
+    dayStart.setHours(0, 0, 0, 0);
+    const dayEnd = new Date(date);
+    dayEnd.setHours(23, 59, 59, 999);
+
+    return this.appointmentRepo.findByStaffAndDateRange(staffId, dayStart, dayEnd);
+  }
+
+  /** Cancels a booked appointment, freeing its slot back up. */
+  async cancel(appointmentId: number): Promise<Appointment> {
+    const appointment = await this.appointmentRepo.findById(appointmentId);
+    if (!appointment) {
+      throw new AppError(
+        "APPOINTMENT_NOT_FOUND",
+        `Appointment ${appointmentId} does not exist`,
+        404,
+      );
+    }
+
+    if (appointment.status === "CANCELLED") {
+      return appointment;
+    }
+    if (appointment.status === "COMPLETED" || appointment.status === "NO_SHOW") {
+      throw new AppError(
+        "APPOINTMENT_NOT_CANCELLABLE",
+        `Cannot cancel an appointment that is already ${appointment.status}.`,
+        409,
+      );
+    }
+
+    return this.appointmentRepo.updateStatus(appointmentId, "CANCELLED");
+  }
 }

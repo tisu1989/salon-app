@@ -1,4 +1,9 @@
-import type { Appointment, AppointmentSource, PrismaClient } from "@prisma/client";
+import type {
+  Appointment,
+  AppointmentSource,
+  AppointmentStatus,
+  PrismaClient,
+} from "@prisma/client";
 
 export interface CreateAppointmentInput {
   customerId: number;
@@ -35,5 +40,29 @@ export class AppointmentRepository {
 
   async create(input: CreateAppointmentInput): Promise<Appointment> {
     return this.db.appointment.create({ data: input });
+  }
+
+  async findById(appointmentId: number): Promise<Appointment | null> {
+    return this.db.appointment.findUnique({ where: { id: appointmentId } });
+  }
+
+  /** Every appointment for this staff member on a given day, any status - for the staff day view. */
+  async findByStaffAndDateRange(
+    staffId: number,
+    rangeStart: Date,
+    rangeEnd: Date,
+  ): Promise<Appointment[]> {
+    return this.db.appointment.findMany({
+      where: {
+        staffId,
+        startTime: { lt: rangeEnd },
+        endTime: { gt: rangeStart },
+      },
+      orderBy: { startTime: "asc" },
+    });
+  }
+
+  async updateStatus(appointmentId: number, status: AppointmentStatus): Promise<Appointment> {
+    return this.db.appointment.update({ where: { id: appointmentId }, data: { status } });
   }
 }
