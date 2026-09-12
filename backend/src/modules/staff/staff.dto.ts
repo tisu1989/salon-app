@@ -22,6 +22,11 @@ export const updateStaffSchema = z
   });
 export type UpdateStaffDto = z.infer<typeof updateStaffSchema>;
 
+export const resetPasswordSchema = z.object({
+  password: z.string().min(8, "password must be at least 8 characters"),
+});
+export type ResetPasswordDto = z.infer<typeof resetPasswordSchema>;
+
 const timeString = z
   .string()
   .regex(/^([01]\d|2[0-3]):[0-5]\d$/, "must be in HH:mm 24h format, e.g. 09:00");

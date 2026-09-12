@@ -7,6 +7,7 @@ import type { StaffController } from "./staff.controller.js";
 import {
   createStaffSchema,
   createTimeOffSchema,
+  resetPasswordSchema,
   setWorkingHoursSchema,
   updateStaffSchema,
 } from "./staff.dto.js";
@@ -33,6 +34,12 @@ export function createStaffRouter(controller: StaffController): Router {
     asyncHandler(controller.update),
   );
   router.patch("/:id/deactivate", authorize("ADMIN"), asyncHandler(controller.deactivate));
+  router.patch(
+    "/:id/reset-password",
+    authorize("ADMIN"),
+    validateBody(resetPasswordSchema),
+    asyncHandler(controller.resetPassword),
+  );
 
   // Anyone signed in can view a schedule (needed to show availability), but only
   // admins can change it - schedule changes affect what customers can book.

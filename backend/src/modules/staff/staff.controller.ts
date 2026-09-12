@@ -6,6 +6,7 @@ import type { StaffRepository } from "./staff.repository.js";
 import type {
   CreateStaffDto,
   CreateTimeOffDto,
+  ResetPasswordDto,
   SetWorkingHoursDto,
   UpdateStaffDto,
 } from "./staff.dto.js";
@@ -77,7 +78,33 @@ export class StaffController {
     res.status(200).json({ staff: toSafeStaff(staff) });
   };
 
-  /** Admin-only: soft-deletes a staff member (e.g. they've left) - existing appointments are untouched. */
+  /**
+   * Admin-only: resets a staff member's password. No self-service flow exists
+   * yet (that needs email delivery), so this is the only reset path today.
+   * Also revokes every existing session of theirs - a password reset that
+   * left old refresh tokens valid wouldn't actually lock anyone out.
+   */
+  resetPassword = async (req: Request, res: Response): Promise<void> => {
+    const staffId = parseStaffId(req);
+    const { password } = req.body as ResetPasswordDto;
+
+    const passwordHash = await this.authService.hashPassword(password);
+    const staff = await this.staffRepo.setPasswordHash(staffId, passwordHash);
+    if (!staff) {
+      throw new AppError("STAFF_NOT_FOUND", `Staff ${staffId} does not exist`, 404);
+    }
+    await this.authService.revokeAllSessions(staffId);
+
+    res.status(200).json({ staff: toSafeStaff(staff) });
+  };
+
+  /**
+   * Admin-only: soft-deletes a staff member (e.g. they've left) - existing
+   * appointments are untouched. Also revokes their sessions: their current
+   * access token still works until it naturally expires (JWTs are stateless -
+   * that's the accepted tradeoff of the short 15min TTL), but they can't get a
+   * new one once it does.
+   */
   deactivate = async (req: Request, res: Response): Promise<void> => {
     const staffId = parseStaffId(req);
 
@@ -85,6 +112,7 @@ export class StaffController {
     if (!staff) {
       throw new AppError("STAFF_NOT_FOUND", `Staff ${staffId} does not exist`, 404);
     }
+    await this.authService.revokeAllSessions(staffId);
 
     res.status(200).json({ staff: toSafeStaff(staff) });
   };

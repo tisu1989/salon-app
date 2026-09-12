@@ -63,6 +63,20 @@ export class StaffRepository {
     return this.update(staffId, { isActive });
   }
 
+  // Separate from `update()` on purpose - passwordHash is deliberately excluded
+  // from UpdateStaffInput so a generic "edit name/email" call can never
+  // accidentally touch it.
+  async setPasswordHash(staffId: number, passwordHash: string): Promise<Staff | null> {
+    try {
+      return await this.db.staff.update({ where: { id: staffId }, data: { passwordHash } });
+    } catch (err) {
+      if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2025") {
+        return null;
+      }
+      throw err;
+    }
+  }
+
   async getWorkingHours(staffId: number): Promise<WorkingHours[]> {
     return this.db.workingHours.findMany({ where: { staffId } });
   }

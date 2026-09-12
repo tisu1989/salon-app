@@ -4,7 +4,7 @@ import { createApp } from "../../app.js";
 import { prisma } from "../../config/prisma.js";
 import { redis } from "../../config/redis.js";
 import { resetDatabase } from "../../test-support/reset-db.js";
-import { createStaff, loginAs } from "../../test-support/factories.js";
+import { TEST_PASSWORD, createStaff, loginAs } from "../../test-support/factories.js";
 
 const app = createApp();
 
@@ -117,5 +117,54 @@ describe("PATCH /api/v1/staff/:id/deactivate", () => {
 
     const listRes = await request(app).get("/api/v1/staff").set("Authorization", `Bearer ${token}`);
     expect(listRes.body.staff.map((s: { id: number }) => s.id)).not.toContain(target.id);
+  });
+});
+
+describe("PATCH /api/v1/staff/:id/reset-password", () => {
+  it("changes the password and revokes existing sessions", async () => {
+    await createStaff(prisma, { phone: "+900000000019", role: "ADMIN" });
+    const adminToken = await loginAs(app, "+900000000019");
+    const target = await createStaff(prisma, { phone: "+900000000020", role: "STAFF" });
+
+    const targetLogin = await request(app)
+      .post("/api/v1/auth/login")
+      .send({ identifier: "+900000000020", password: TEST_PASSWORD });
+    const oldRefreshToken = targetLogin.body.refreshToken as string;
+
+    const resetRes = await request(app)
+      .patch(`/api/v1/staff/${target.id}/reset-password`)
+      .set("Authorization", `Bearer ${adminToken}`)
+      .send({ password: "BrandNewPassword123!" });
+    expect(resetRes.status).toBe(200);
+
+    // The refresh token issued before the reset must no longer work.
+    const refreshAfterReset = await request(app)
+      .post("/api/v1/auth/refresh")
+      .send({ refreshToken: oldRefreshToken });
+    expect(refreshAfterReset.status).toBe(401);
+
+    // The old password no longer works; the new one does.
+    const loginWithOldPassword = await request(app)
+      .post("/api/v1/auth/login")
+      .send({ identifier: "+900000000020", password: TEST_PASSWORD });
+    expect(loginWithOldPassword.status).toBe(401);
+
+    const loginWithNewPassword = await request(app)
+      .post("/api/v1/auth/login")
+      .send({ identifier: "+900000000020", password: "BrandNewPassword123!" });
+    expect(loginWithNewPassword.status).toBe(200);
+  });
+
+  it("rejects a STAFF-role token with 403", async () => {
+    await createStaff(prisma, { phone: "+900000000021", role: "STAFF" });
+    const token = await loginAs(app, "+900000000021");
+    const target = await createStaff(prisma, { phone: "+900000000022", role: "STAFF" });
+
+    const res = await request(app)
+      .patch(`/api/v1/staff/${target.id}/reset-password`)
+      .set("Authorization", `Bearer ${token}`)
+      .send({ password: "SomePassword123!" });
+
+    expect(res.status).toBe(403);
   });
 });
