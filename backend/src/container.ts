@@ -29,6 +29,7 @@ import { WhatsappController } from "./modules/whatsapp/whatsapp.controller.js";
 
 import { NotificationRepository } from "./modules/notification/notification.repository.js";
 import { NotificationService } from "./modules/notification/notification.service.js";
+import { NotificationController } from "./modules/notification/notification.controller.js";
 
 const staffRepo = new StaffRepository(prisma);
 const serviceRepo = new ServiceRepository(prisma);
@@ -55,6 +56,8 @@ const whatsappService = new WhatsappService(
   appointmentService,
 );
 
+const notificationService = new NotificationService(notificationRepo, whatsappClient);
+
 export const controllers = {
   auth: new AuthController(authService),
   appointment: new AppointmentController(appointmentService),
@@ -62,9 +65,10 @@ export const controllers = {
   service: new ServiceController(serviceRepo),
   customer: new CustomerController(customerRepo),
   whatsapp: new WhatsappController(whatsappService),
+  notification: new NotificationController(notificationService),
 };
 
 // Not part of the HTTP surface - server.ts hands this to startNotificationWorker.
 export const services = {
-  notification: new NotificationService(notificationRepo, whatsappClient),
+  notification: notificationService,
 };

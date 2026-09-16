@@ -21,10 +21,11 @@ export function createAppointmentRouter(controller: AppointmentController): Rout
     asyncHandler(controller.getAvailability),
   );
 
-  router.get("/", validateQuery(listAppointmentsQuerySchema), asyncHandler(controller.listForDay));
+  router.get("/", validateQuery(listAppointmentsQuerySchema), asyncHandler(controller.list));
 
   router.post("/", validateBody(createAppointmentSchema), asyncHandler(controller.book));
 
+  router.patch("/:id/confirm", asyncHandler(controller.confirm));
   router.patch("/:id/cancel", asyncHandler(controller.cancel));
   router.patch("/:id/complete", asyncHandler(controller.complete));
   router.patch("/:id/no-show", asyncHandler(controller.noShow));

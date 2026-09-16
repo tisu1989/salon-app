@@ -129,6 +129,42 @@ export class AuthService {
     return this.issueTokens(staff.id, staff.role);
   }
 
+  /** The logged-in staff member's own profile - what GET /auth/me returns after a token refresh. */
+  async me(staffId: number): Promise<AuthenticatedStaff> {
+    const staff = await this.staffRepo.findById(staffId);
+    if (!staff || !staff.isActive) {
+      throw new AppError("STAFF_NOT_FOUND", "Account no longer exists.", 404);
+    }
+    return toPublicStaff(staff);
+  }
+
+  /**
+   * Self-service password change - requires the current password, unlike the admin
+   * reset endpoint. Revokes every other refresh token afterwards (same reasoning as
+   * an admin reset: a password change that left old sessions valid wouldn't actually
+   * secure the account), but this request's own access token stays valid until it
+   * naturally expires.
+   */
+  async changePassword(
+    staffId: number,
+    currentPassword: string,
+    newPassword: string,
+  ): Promise<void> {
+    const staff = await this.staffRepo.findById(staffId);
+    if (!staff || !staff.isActive) {
+      throw new AppError("STAFF_NOT_FOUND", "Account no longer exists.", 404);
+    }
+
+    const passwordMatches = await bcrypt.compare(currentPassword, staff.passwordHash);
+    if (!passwordMatches) {
+      throw new AppError("INVALID_CREDENTIALS", "Current password is incorrect.", 401);
+    }
+
+    const passwordHash = await this.hashPassword(newPassword);
+    await this.staffRepo.setPasswordHash(staffId, passwordHash);
+    await this.revokeAllSessions(staffId);
+  }
+
   /** Revokes every refresh token issued to this staff member (e.g. on logout or password change). */
   async revokeAllSessions(staffId: number): Promise<void> {
     const keys = await this.redis.keys(refreshTokenKey(staffId, "*"));

@@ -1,7 +1,10 @@
+import type { NotificationStatus } from "@prisma/client";
 import { formatTime24h } from "../whatsapp/bot-text.js";
 import { formatShortDate } from "../../utils/format-date.js";
+import { AppError } from "../../middleware/error-handler.js";
 import type { WhatsappClient } from "../whatsapp/whatsapp.client.js";
 import type {
+  NotificationForListing,
   NotificationRepository,
   NotificationWithAppointment,
 } from "./notification.repository.js";
@@ -22,6 +25,31 @@ export class NotificationService {
     private readonly notificationRepo: NotificationRepository,
     private readonly whatsappClient: WhatsappClient,
   ) {}
+
+  /** The notification log screen: most recent first, optionally narrowed to one status. */
+  async list(limit: number, status?: NotificationStatus): Promise<NotificationForListing[]> {
+    return this.notificationRepo.findRecent(limit, status);
+  }
+
+  /**
+   * Manually retries a notification that gave up after exhausting its attempts.
+   * Only makes sense for FAILED ones - PENDING is already going to be retried on
+   * its own schedule, and SENT has nothing left to do.
+   */
+  async retry(id: number): Promise<void> {
+    const notification = await this.notificationRepo.findById(id);
+    if (!notification) {
+      throw new AppError("NOTIFICATION_NOT_FOUND", `Notification ${id} does not exist`, 404);
+    }
+    if (notification.status !== "FAILED") {
+      throw new AppError(
+        "INVALID_STATUS",
+        `Only a FAILED notification can be retried (this one is ${notification.status}).`,
+        409,
+      );
+    }
+    await this.notificationRepo.resetForRetry(id);
+  }
 
   /** Queues a REMINDER for any BOOKED/CONFIRMED appointment starting soon that doesn't have one yet. */
   async scheduleUpcomingReminders(): Promise<void> {

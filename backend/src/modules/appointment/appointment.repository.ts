@@ -62,6 +62,25 @@ export class AppointmentRepository {
     });
   }
 
+  /** Every appointment across all staff on a given day, any status - for a salon-wide day view. */
+  async findByDateRange(rangeStart: Date, rangeEnd: Date): Promise<Appointment[]> {
+    return this.db.appointment.findMany({
+      where: {
+        startTime: { lt: rangeEnd },
+        endTime: { gt: rangeStart },
+      },
+      orderBy: [{ staffId: "asc" }, { startTime: "asc" }],
+    });
+  }
+
+  /** Every appointment a customer has ever had, most recent first - their booking history. */
+  async findByCustomerId(customerId: number): Promise<Appointment[]> {
+    return this.db.appointment.findMany({
+      where: { customerId },
+      orderBy: { startTime: "desc" },
+    });
+  }
+
   async updateStatus(appointmentId: number, status: AppointmentStatus): Promise<Appointment> {
     return this.db.appointment.update({ where: { id: appointmentId }, data: { status } });
   }

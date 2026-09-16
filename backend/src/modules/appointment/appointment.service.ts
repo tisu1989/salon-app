@@ -91,14 +91,30 @@ export class AppointmentService {
     return appointment;
   }
 
-  /** Every appointment on a staff member's calendar for one day, any status - for a day-view screen. */
-  async listForStaffAndDate(staffId: number, date: Date): Promise<Appointment[]> {
+  /**
+   * Every appointment for one day, any status - the day-view screen. With a staffId,
+   * just that person's calendar; without one, every staff member's day at once (the
+   * salon-wide front-desk board).
+   */
+  async listForDay(date: Date, staffId?: number): Promise<Appointment[]> {
     const dayStart = new Date(date);
     dayStart.setHours(0, 0, 0, 0);
     const dayEnd = new Date(date);
     dayEnd.setHours(23, 59, 59, 999);
 
-    return this.appointmentRepo.findByStaffAndDateRange(staffId, dayStart, dayEnd);
+    return staffId !== undefined
+      ? this.appointmentRepo.findByStaffAndDateRange(staffId, dayStart, dayEnd)
+      : this.appointmentRepo.findByDateRange(dayStart, dayEnd);
+  }
+
+  /** A customer's full booking history, most recent first. */
+  async listForCustomer(customerId: number): Promise<Appointment[]> {
+    return this.appointmentRepo.findByCustomerId(customerId);
+  }
+
+  /** Confirms a booked appointment - the customer has verified they're coming. */
+  async confirm(appointmentId: number): Promise<Appointment> {
+    return this.transitionStatus(appointmentId, "CONFIRMED");
   }
 
   /** Cancels a booked appointment, freeing its slot back up. */

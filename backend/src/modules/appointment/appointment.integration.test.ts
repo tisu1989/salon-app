@@ -196,6 +196,17 @@ async function bookTestAppointment(
 }
 
 describe("appointment status transitions", () => {
+  it("confirms a booked appointment", async () => {
+    const { appointmentId, token } = await bookTestAppointment("44");
+
+    const res = await request(app)
+      .patch(`/api/v1/appointments/${appointmentId}/confirm`)
+      .set("Authorization", `Bearer ${token}`);
+
+    expect(res.status).toBe(200);
+    expect(res.body.appointment.status).toBe("CONFIRMED");
+  });
+
   it("marks a booked appointment as completed", async () => {
     const { appointmentId, token } = await bookTestAppointment("40");
 
@@ -246,5 +257,126 @@ describe("appointment status transitions", () => {
 
     expect(res.status).toBe(409);
     expect(res.body.code).toBe("INVALID_STATUS_TRANSITION");
+  });
+});
+
+describe("GET /api/v1/appointments", () => {
+  it("rejects a query with neither customerId nor date", async () => {
+    const staff = await createStaff(prisma, { phone: "+900000000050", role: "STAFF" });
+    const token = await loginAs(app, "+900000000050");
+
+    const res = await request(app)
+      .get("/api/v1/appointments")
+      .query({ staffId: staff.id })
+      .set("Authorization", `Bearer ${token}`);
+
+    expect(res.status).toBe(400);
+  });
+
+  it("returns a customer's booking history across different staff, most recent first", async () => {
+    const staffA = await createStaff(prisma, { phone: "+900000000051", role: "STAFF" });
+    const staffB = await createStaff(prisma, { phone: "+900000000052", role: "STAFF" });
+    await createWorkingHoursAllWeek(prisma, staffA.id);
+    await createWorkingHoursAllWeek(prisma, staffB.id);
+    const service = await createService(prisma, { durationMinutes: 30 });
+    const customer = await createCustomer(prisma, { phone: "+900000000053" });
+    const token = await loginAs(app, "+900000000051");
+
+    const earlierDate = daysFromNow(1).toISOString();
+    const laterDate = daysFromNow(2).toISOString();
+
+    const slotA = (
+      await request(app)
+        .get("/api/v1/appointments/availability")
+        .query({ staffId: staffA.id, serviceId: service.id, date: earlierDate })
+        .set("Authorization", `Bearer ${token}`)
+    ).body.slots[0];
+    const bookingA = await request(app)
+      .post("/api/v1/appointments")
+      .set("Authorization", `Bearer ${token}`)
+      .send({
+        customerId: customer.id,
+        staffId: staffA.id,
+        serviceId: service.id,
+        startTime: slotA.start,
+        endTime: slotA.end,
+      });
+
+    const slotB = (
+      await request(app)
+        .get("/api/v1/appointments/availability")
+        .query({ staffId: staffB.id, serviceId: service.id, date: laterDate })
+        .set("Authorization", `Bearer ${token}`)
+    ).body.slots[0];
+    const bookingB = await request(app)
+      .post("/api/v1/appointments")
+      .set("Authorization", `Bearer ${token}`)
+      .send({
+        customerId: customer.id,
+        staffId: staffB.id,
+        serviceId: service.id,
+        startTime: slotB.start,
+        endTime: slotB.end,
+      });
+
+    const res = await request(app)
+      .get("/api/v1/appointments")
+      .query({ customerId: customer.id })
+      .set("Authorization", `Bearer ${token}`);
+
+    expect(res.status).toBe(200);
+    expect(res.body.appointments.map((a: { id: number }) => a.id)).toEqual([
+      bookingB.body.appointment.id,
+      bookingA.body.appointment.id,
+    ]);
+  });
+
+  it("returns every staff member's appointments for a day when staffId is omitted", async () => {
+    const staffA = await createStaff(prisma, { phone: "+900000000060", role: "STAFF" });
+    const staffB = await createStaff(prisma, { phone: "+900000000061", role: "STAFF" });
+    await createWorkingHoursAllWeek(prisma, staffA.id);
+    await createWorkingHoursAllWeek(prisma, staffB.id);
+    const service = await createService(prisma, { durationMinutes: 30 });
+    const customer = await createCustomer(prisma, { phone: "+900000000062" });
+    const token = await loginAs(app, "+900000000060");
+    const date = daysFromNow(1).toISOString();
+
+    const slotA = (
+      await request(app)
+        .get("/api/v1/appointments/availability")
+        .query({ staffId: staffA.id, serviceId: service.id, date })
+        .set("Authorization", `Bearer ${token}`)
+    ).body.slots[0];
+    await request(app).post("/api/v1/appointments").set("Authorization", `Bearer ${token}`).send({
+      customerId: customer.id,
+      staffId: staffA.id,
+      serviceId: service.id,
+      startTime: slotA.start,
+      endTime: slotA.end,
+    });
+
+    const slotB = (
+      await request(app)
+        .get("/api/v1/appointments/availability")
+        .query({ staffId: staffB.id, serviceId: service.id, date })
+        .set("Authorization", `Bearer ${token}`)
+    ).body.slots[0];
+    await request(app).post("/api/v1/appointments").set("Authorization", `Bearer ${token}`).send({
+      customerId: customer.id,
+      staffId: staffB.id,
+      serviceId: service.id,
+      startTime: slotB.start,
+      endTime: slotB.end,
+    });
+
+    const res = await request(app)
+      .get("/api/v1/appointments")
+      .query({ date })
+      .set("Authorization", `Bearer ${token}`);
+
+    expect(res.status).toBe(200);
+    expect(res.body.appointments).toHaveLength(2);
+    const staffIds = res.body.appointments.map((a: { staffId: number }) => a.staffId).sort();
+    expect(staffIds).toEqual([staffA.id, staffB.id].sort());
   });
 });

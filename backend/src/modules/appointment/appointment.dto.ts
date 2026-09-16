@@ -16,8 +16,15 @@ export const createAppointmentSchema = z.object({
 });
 export type CreateAppointmentDto = z.infer<typeof createAppointmentSchema>;
 
-export const listAppointmentsQuerySchema = z.object({
-  staffId: z.coerce.number().int().positive(),
-  date: z.coerce.date(),
-});
+// Either customerId (their full history) or date (that day's board, optionally
+// narrowed to one staff member) - never both interpretations of the same request.
+export const listAppointmentsQuerySchema = z
+  .object({
+    staffId: z.coerce.number().int().positive().optional(),
+    date: z.coerce.date().optional(),
+    customerId: z.coerce.number().int().positive().optional(),
+  })
+  .refine((q) => q.customerId !== undefined || q.date !== undefined, {
+    message: "provide either customerId, or date (optionally with staffId)",
+  });
 export type ListAppointmentsQueryDto = z.infer<typeof listAppointmentsQuerySchema>;

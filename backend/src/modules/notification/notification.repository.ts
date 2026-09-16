@@ -1,4 +1,10 @@
-import { Prisma, type Appointment, type NotificationType, type PrismaClient } from "@prisma/client";
+import {
+  Prisma,
+  type Appointment,
+  type NotificationStatus,
+  type NotificationType,
+  type PrismaClient,
+} from "@prisma/client";
 import type { Redis } from "ioredis";
 import { NOTIFICATION_CHANNEL } from "./notification.channel.js";
 
@@ -16,6 +22,23 @@ const notificationWithAppointmentInclude = {
 /** A pending notification row plus everything needed to build and send the actual message. */
 export type NotificationWithAppointment = Prisma.NotificationLogGetPayload<{
   include: typeof notificationWithAppointmentInclude;
+}>;
+
+// Deliberately a `select`, not the `include: { staff: true }` above - this shape reaches
+// the HTTP response (GET /notifications), so staff.passwordHash must never be in it.
+const notificationForListingInclude = {
+  appointment: {
+    include: {
+      customer: true,
+      service: true,
+      staff: { select: { id: true, name: true, phone: true, email: true, role: true } },
+    },
+  },
+} satisfies Prisma.NotificationLogInclude;
+
+/** A notification row shaped for the notification log screen - no password hash along for the ride. */
+export type NotificationForListing = Prisma.NotificationLogGetPayload<{
+  include: typeof notificationForListingInclude;
 }>;
 
 export class NotificationRepository {
@@ -40,6 +63,29 @@ export class NotificationRepository {
       where: { id },
       include: notificationWithAppointmentInclude,
     });
+  }
+
+  /** The notification log screen: most recent first, optionally narrowed to one status. */
+  async findRecent(limit: number, status?: NotificationStatus): Promise<NotificationForListing[]> {
+    return this.db.notificationLog.findMany({
+      ...(status !== undefined && { where: { status } }),
+      orderBy: { createdAt: "desc" },
+      take: limit,
+      include: notificationForListingInclude,
+    });
+  }
+
+  /**
+   * Puts a FAILED notification back in the send queue with a clean slate - a fresh
+   * attempt budget and no backoff wait, so the next poll tick (or an immediate
+   * publish) picks it up right away instead of waiting out the old schedule.
+   */
+  async resetForRetry(id: number): Promise<void> {
+    await this.db.notificationLog.update({
+      where: { id },
+      data: { status: "PENDING", attempts: 0, lastAttemptAt: null },
+    });
+    await this.redis.publish(NOTIFICATION_CHANNEL, JSON.stringify({ id }));
   }
 
   /**

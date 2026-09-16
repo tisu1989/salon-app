@@ -38,10 +38,21 @@ export class AppointmentController {
     res.status(201).json({ appointment });
   };
 
-  listForDay = async (req: Request, res: Response): Promise<void> => {
-    const { staffId, date } = getValidatedQuery<ListAppointmentsQueryDto>(req);
-    const appointments = await this.appointmentService.listForStaffAndDate(staffId, date);
+  list = async (req: Request, res: Response): Promise<void> => {
+    const { staffId, date, customerId } = getValidatedQuery<ListAppointmentsQueryDto>(req);
+
+    // The DTO's refine() already guarantees customerId or date is present.
+    const appointments =
+      customerId !== undefined
+        ? await this.appointmentService.listForCustomer(customerId)
+        : await this.appointmentService.listForDay(date!, staffId);
+
     res.status(200).json({ appointments });
+  };
+
+  confirm = async (req: Request, res: Response): Promise<void> => {
+    const appointment = await this.appointmentService.confirm(parseAppointmentId(req));
+    res.status(200).json({ appointment });
   };
 
   cancel = async (req: Request, res: Response): Promise<void> => {
