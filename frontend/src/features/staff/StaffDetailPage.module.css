@@ -1,0 +1,195 @@
+.page {
+  max-width: 640px;
+}
+
+.back {
+  color: var(--ink-soft);
+  text-decoration: none;
+  font-size: 0.85rem;
+  display: inline-block;
+  margin-bottom: 12px;
+}
+
+.header {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin-bottom: 4px;
+  flex-wrap: wrap;
+}
+
+.subtitle {
+  color: var(--ink-soft);
+  margin: 0 0 24px;
+}
+
+.section {
+  background: var(--paper-raised);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  box-shadow: var(--shadow);
+  padding: 18px 20px;
+  margin-bottom: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.sectionTitle {
+  font-size: 1.05rem;
+  margin: 0;
+}
+
+.formRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1 1 140px;
+}
+
+.field label {
+  font-size: 0.8rem;
+  color: var(--ink-soft);
+}
+
+.field input {
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 8px 10px;
+  background: var(--paper);
+  color: var(--ink);
+  min-height: 44px;
+}
+
+.button {
+  min-height: 44px;
+  padding: 0 16px;
+  border-radius: 6px;
+  border: none;
+  background: var(--claret);
+  color: white;
+  font-weight: 600;
+  font-size: 0.85rem;
+  cursor: pointer;
+  align-self: flex-start;
+}
+
+.button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.secondaryButton {
+  min-height: 44px;
+  padding: 0 16px;
+  border-radius: 6px;
+  border: 1px solid var(--line);
+  background: var(--paper);
+  color: var(--ink);
+  font-size: 0.85rem;
+  cursor: pointer;
+  align-self: flex-start;
+}
+
+.dangerButton {
+  composes: secondaryButton;
+  color: var(--crit);
+  border-color: var(--crit-soft);
+}
+
+.buttonRow {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.hoursGrid {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.dayRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.dayLabel {
+  width: 44px;
+  font-size: 0.85rem;
+  color: var(--ink-soft);
+}
+
+.dayRow input[type="time"] {
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 6px 8px;
+  background: var(--paper);
+  color: var(--ink);
+  min-height: 44px;
+}
+
+.dayRow input[type="checkbox"] {
+  width: 20px;
+  height: 20px;
+}
+
+.timeOffList {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.timeOffRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 10px 12px;
+}
+
+.timeOffMeta {
+  font-size: 0.85rem;
+}
+
+.removeButton {
+  min-height: 36px;
+  padding: 0 12px;
+  border: 1px solid var(--crit-soft);
+  border-radius: 6px;
+  background: var(--paper);
+  color: var(--crit);
+  cursor: pointer;
+  font-size: 0.8rem;
+}
+
+.error {
+  background: var(--crit-soft);
+  color: var(--crit);
+  border-radius: 6px;
+  padding: 10px 12px;
+  font-size: 0.85rem;
+}
+
+.success {
+  background: var(--ok-soft);
+  color: var(--ok);
+  border-radius: 6px;
+  padding: 10px 12px;
+  font-size: 0.85rem;
+}
+
+.empty {
+  color: var(--ink-soft);
+  font-size: 0.85rem;
+}
