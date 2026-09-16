@@ -10,6 +10,19 @@
   flex: 1 0 auto;
 }
 
+.newBookingLink {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 16px;
+  border-radius: 6px;
+  background: var(--claret);
+  color: white;
+  font-weight: 600;
+  font-size: 0.85rem;
+  text-decoration: none;
+}
+
 .control {
   display: flex;
   flex-direction: column;

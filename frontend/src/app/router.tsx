@@ -1,6 +1,7 @@
 import { createBrowserRouter, Navigate } from "react-router-dom";
 import { LoginPage } from "../features/auth/LoginPage";
 import { TodayBoardPage } from "../features/appointments/TodayBoardPage";
+import { NewBookingWizard } from "../features/appointments/NewBookingWizard";
 import { StaffDirectoryPage } from "../features/staff/StaffDirectoryPage";
 import { ServiceMenuPage } from "../features/services/ServiceMenuPage";
 import { AppShell } from "./AppShell";
@@ -15,6 +16,7 @@ export const router = createBrowserRouter([
         element: <AppShell />,
         children: [
           { path: "/", element: <TodayBoardPage /> },
+          { path: "/appointments/new", element: <NewBookingWizard /> },
           { path: "/staff", element: <StaffDirectoryPage /> },
           { path: "/services", element: <ServiceMenuPage /> },
         ],

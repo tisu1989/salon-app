@@ -25,6 +25,17 @@ export interface CreateAppointmentRequest {
   endTime: string;
 }
 
+export interface AvailabilitySlot {
+  start: string;
+  end: string;
+}
+
+export interface AvailabilityParams {
+  staffId: number;
+  serviceId: number;
+  date: string;
+}
+
 /**
  * Only the transitions the backend actually exposes as routes. The service layer's
  * ALLOWED_TRANSITIONS table also lists BOOKED -> CONFIRMED, but there is no

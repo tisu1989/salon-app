@@ -12,7 +12,20 @@ export const customerApi = baseApi.injectEndpoints({
       query: (q) => `/customers?q=${encodeURIComponent(q)}`,
       transformResponse: (res: { customers: Customer[] }) => res.customers,
     }),
+    /**
+     * Idempotent by phone on the backend - findOrCreateByPhone returns the existing
+     * customer if the phone number is already on file instead of erroring, so this is
+     * safe to call for "new customer" even if they secretly already exist.
+     */
+    createCustomer: build.mutation<Customer, { name: string; phone: string }>({
+      query: (body) => ({ url: "/customers", method: "POST", body }),
+      transformResponse: (res: { customer: Customer }) => res.customer,
+    }),
   }),
 });
 
-export const { useGetCustomerQuery, useSearchCustomersQuery } = customerApi;
+export const {
+  useGetCustomerQuery,
+  useSearchCustomersQuery,
+  useCreateCustomerMutation,
+} = customerApi;

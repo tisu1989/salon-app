@@ -1,12 +1,19 @@
 import { baseApi } from "../../app/base-api";
 import type {
   Appointment,
+  AvailabilityParams,
+  AvailabilitySlot,
   CreateAppointmentRequest,
   ListAppointmentsParams,
 } from "./appointment.types";
 
 export const appointmentApi = baseApi.injectEndpoints({
   endpoints: (build) => ({
+    getAvailability: build.query<AvailabilitySlot[], AvailabilityParams>({
+      query: ({ staffId, serviceId, date }) =>
+        `/appointments/availability?staffId=${staffId}&serviceId=${serviceId}&date=${date}`,
+      transformResponse: (res: { slots: AvailabilitySlot[] }) => res.slots,
+    }),
     listAppointments: build.query<Appointment[], ListAppointmentsParams>({
       query: ({ staffId, date }) => `/appointments?staffId=${staffId}&date=${date}`,
       transformResponse: (res: { appointments: Appointment[] }) => res.appointments,
@@ -42,6 +49,7 @@ export const appointmentApi = baseApi.injectEndpoints({
 });
 
 export const {
+  useGetAvailabilityQuery,
   useListAppointmentsQuery,
   useBookAppointmentMutation,
   useCancelAppointmentMutation,

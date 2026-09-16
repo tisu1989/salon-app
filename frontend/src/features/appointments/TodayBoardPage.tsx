@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { Link, useSearchParams } from "react-router-dom";
 import { useAppSelector } from "../../app/hooks";
 import { useListStaffQuery } from "../staff/staff.api";
 import { useListServicesQuery } from "../services/service.api";
@@ -10,8 +11,9 @@ import styles from "./TodayBoardPage.module.css";
 export function TodayBoardPage() {
   const currentStaff = useAppSelector((s) => s.auth.staff);
   const isAdmin = currentStaff?.role === "ADMIN";
+  const [searchParams] = useSearchParams();
 
-  const [date, setDate] = useState(() => toDateInputValue(new Date()));
+  const [date, setDate] = useState(() => searchParams.get("date") ?? toDateInputValue(new Date()));
   const [staffId, setStaffId] = useState<number>(currentStaff?.id ?? 0);
 
   const { data: staffList } = useListStaffQuery(undefined, { skip: !isAdmin });
@@ -40,6 +42,10 @@ export function TodayBoardPage() {
     <div>
       <div className={styles.header}>
         <h1>Today's Board</h1>
+
+        <Link to="/appointments/new" className={styles.newBookingLink}>
+          + New booking
+        </Link>
 
         <label className={styles.control}>
           Date
