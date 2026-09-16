@@ -1,0 +1,108 @@
+.header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.header h1 {
+  flex: 1 0 auto;
+}
+
+.control {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 0.8rem;
+  color: var(--ink-soft);
+}
+
+.control select,
+.control input {
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 8px 10px;
+  background: var(--paper-raised);
+  color: var(--ink);
+  min-height: 44px;
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.card {
+  background: var(--paper-raised);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  box-shadow: var(--shadow);
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.time {
+  font-family: var(--font-mono);
+  font-size: 0.9rem;
+  min-width: 110px;
+}
+
+.customer {
+  font-weight: 600;
+}
+
+.service {
+  color: var(--ink-soft);
+  font-size: 0.9rem;
+}
+
+.actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.actionButton {
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--paper);
+  color: var(--ink);
+  padding: 0 14px;
+  min-height: 44px;
+  cursor: pointer;
+  font-size: 0.85rem;
+}
+
+.actionButton:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.actionButton.danger {
+  color: var(--crit);
+  border-color: var(--crit-soft);
+}
+
+.empty {
+  color: var(--ink-soft);
+  padding: 24px 0;
+  text-align: center;
+}
+
+/* Two-up allowed at tablet width per the Blueprint's "Responsive rules". */
+@media (min-width: 640px) {
+  .row {
+    flex-wrap: nowrap;
+  }
+}
