@@ -1,0 +1,83 @@
+.shell {
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+}
+
+.main {
+  flex: 1;
+  padding: 20px 16px 96px;
+  max-width: 100%;
+}
+
+/* Bottom tab bar: phone (<=639px) and tablet (640-1023px) tiers both use it. */
+.tabBar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  background: var(--paper-raised);
+  border-top: 1px solid var(--line);
+  box-shadow: var(--shadow);
+  padding-bottom: env(safe-area-inset-bottom, 0);
+}
+
+.tabLink {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 8px 4px;
+  min-height: 44px;
+  color: var(--ink-soft);
+  text-decoration: none;
+  font-size: 0.75rem;
+}
+
+.tabLink[aria-current="page"] {
+  color: var(--claret);
+}
+
+.sidebar {
+  display: none;
+}
+
+/* Desktop / back-office tier: persistent left sidebar replaces the tab bar. */
+@media (min-width: 1024px) {
+  .shell {
+    flex-direction: row;
+  }
+
+  .tabBar {
+    display: none;
+  }
+
+  .sidebar {
+    display: flex;
+    flex-direction: column;
+    width: 220px;
+    flex-shrink: 0;
+    padding: 24px 12px;
+    border-right: 1px solid var(--line);
+    gap: 4px;
+  }
+
+  .sidebarLink {
+    padding: 10px 12px;
+    border-radius: 6px;
+    color: var(--ink-soft);
+    text-decoration: none;
+    font-size: 0.9rem;
+  }
+
+  .sidebarLink[aria-current="page"] {
+    background: var(--claret-soft);
+    color: var(--claret);
+  }
+
+  .main {
+    padding: 32px 40px 40px;
+  }
+}

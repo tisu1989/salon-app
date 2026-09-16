@@ -1,0 +1,67 @@
+.page {
+  min-height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 16px;
+}
+
+.card {
+  width: 100%;
+  max-width: 360px;
+  background: var(--paper-raised);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  box-shadow: var(--shadow);
+  padding: 32px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.title {
+  font-size: 1.5rem;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.field label {
+  font-size: 0.85rem;
+  color: var(--ink-soft);
+}
+
+.field input {
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 10px 12px;
+  background: var(--paper);
+  color: var(--ink);
+  min-height: 44px;
+}
+
+.submit {
+  min-height: 44px;
+  border: none;
+  border-radius: 6px;
+  background: var(--claret);
+  color: white;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.submit:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.error {
+  background: var(--crit-soft);
+  color: var(--crit);
+  border-radius: 6px;
+  padding: 10px 12px;
+  font-size: 0.9rem;
+}

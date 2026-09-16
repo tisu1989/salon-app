@@ -1,0 +1,70 @@
+/* Design tokens - carried over from the Front Desk Blueprint artifact so the real app
+   matches the plan exactly, not just approximately. */
+:root {
+  --paper: #f3f1ec;
+  --paper-raised: #ffffff;
+  --ink: #22262b;
+  --ink-soft: #565b62;
+  --line: #dcd8cf;
+  --claret: #7c3048;
+  --claret-soft: #f4e3e7;
+  --teal: #3e6e64;
+  --teal-soft: #e2ede9;
+  --ochre: #a8752f;
+  --ochre-soft: #f3e6d1;
+  --ok: #2f7a4f;
+  --ok-soft: #e1f0e5;
+  --warn: #b07a1f;
+  --warn-soft: #f5ebd4;
+  --crit: #ab3939;
+  --crit-soft: #f6e2e2;
+  --shadow: 0 1px 2px rgba(34, 38, 43, 0.06), 0 6px 20px rgba(34, 38, 43, 0.05);
+
+  --font-display: "Bricolage Grotesque", system-ui, sans-serif;
+  --font-body: "Source Sans 3", system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, monospace;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #1b1d21;
+    --paper-raised: #24272c;
+    --ink: #ece9e2;
+    --ink-soft: #a7ada6;
+    --line: #383c41;
+    --claret: #dd8398;
+    --claret-soft: #3a2530;
+    --teal: #8ec3b6;
+    --teal-soft: #223330;
+    --ochre: #e0ac5f;
+    --ochre-soft: #3a2f1e;
+    --ok: #7fd39c;
+    --ok-soft: #1e3226;
+    --warn: #f0c169;
+    --warn-soft: #3a2f1a;
+    --crit: #ec8b8b;
+    --crit-soft: #3a2020;
+    --shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 6px 24px rgba(0, 0, 0, 0.35);
+  }
+}
+
+:root[data-theme="dark"] {
+  --paper: #1b1d21;
+  --paper-raised: #24272c;
+  --ink: #ece9e2;
+  --ink-soft: #a7ada6;
+  --line: #383c41;
+  --claret: #dd8398;
+  --claret-soft: #3a2530;
+  --teal: #8ec3b6;
+  --teal-soft: #223330;
+  --ochre: #e0ac5f;
+  --ochre-soft: #3a2f1e;
+  --ok: #7fd39c;
+  --ok-soft: #1e3226;
+  --warn: #f0c169;
+  --warn-soft: #3a2f1a;
+  --crit: #ec8b8b;
+  --crit-soft: #3a2020;
+  --shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 6px 24px rgba(0, 0, 0, 0.35);
+}
