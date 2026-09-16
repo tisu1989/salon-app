@@ -1,0 +1,36 @@
+.page {
+  max-width: 640px;
+}
+
+.back {
+  color: var(--ink-soft);
+  text-decoration: none;
+  font-size: 0.85rem;
+  display: inline-block;
+  margin-bottom: 12px;
+}
+
+.header {
+  margin-bottom: 4px;
+}
+
+.subtitle {
+  color: var(--ink-soft);
+  margin: 0 0 24px;
+}
+
+.sectionTitle {
+  font-size: 1.05rem;
+  margin: 0 0 12px;
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.empty {
+  color: var(--ink-soft);
+  font-size: 0.9rem;
+}

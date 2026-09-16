@@ -1,0 +1,35 @@
+.grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+}
+
+.card {
+  display: block;
+  background: var(--paper-raised);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  box-shadow: var(--shadow);
+  padding: 20px;
+  text-decoration: none;
+  color: var(--ink);
+  min-height: 44px;
+}
+
+.cardTitle {
+  font-weight: 600;
+  font-size: 1.05rem;
+  margin: 0 0 4px;
+}
+
+.cardMeta {
+  color: var(--ink-soft);
+  font-size: 0.85rem;
+  margin: 0;
+}
+
+@media (min-width: 640px) {
+  .grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}

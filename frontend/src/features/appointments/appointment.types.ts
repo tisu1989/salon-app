@@ -12,10 +12,12 @@ export interface Appointment {
   createdById: number | null;
 }
 
-export interface ListAppointmentsParams {
-  staffId: number;
-  date: string;
-}
+/**
+ * Mirrors the backend's actual query contract: either a day (optionally narrowed to one
+ * staff member - omitting staffId gets every staff member's day, the salon-wide board),
+ * or a customer's full history. Never both at once.
+ */
+export type ListAppointmentsParams = { date: string; staffId?: number } | { customerId: number };
 
 export interface CreateAppointmentRequest {
   customerId: number;
@@ -36,13 +38,12 @@ export interface AvailabilityParams {
   date: string;
 }
 
-/**
- * Only the transitions the backend actually exposes as routes. The service layer's
- * ALLOWED_TRANSITIONS table also lists BOOKED -> CONFIRMED, but there is no
- * PATCH /appointments/:id/confirm route to reach it yet (Blueprint > Backend Gaps).
- */
-export const REACHABLE_ACTIONS: Record<AppointmentStatus, Array<"cancel" | "complete" | "no-show">> = {
-  BOOKED: ["cancel", "complete", "no-show"],
+/** Which action buttons a screen can offer for each status - matches the routes the backend actually exposes. */
+export const REACHABLE_ACTIONS: Record<
+  AppointmentStatus,
+  Array<"confirm" | "cancel" | "complete" | "no-show">
+> = {
+  BOOKED: ["confirm", "cancel", "complete", "no-show"],
   CONFIRMED: ["cancel", "complete", "no-show"],
   CANCELLED: [],
   COMPLETED: [],

@@ -1,0 +1,92 @@
+.page {
+  max-width: 480px;
+}
+
+.section {
+  background: var(--paper-raised);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  box-shadow: var(--shadow);
+  padding: 18px 20px;
+  margin-bottom: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.sectionTitle {
+  font-size: 1.05rem;
+  margin: 0;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.field label {
+  font-size: 0.8rem;
+  color: var(--ink-soft);
+}
+
+.field input {
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 8px 10px;
+  background: var(--paper);
+  color: var(--ink);
+  min-height: 44px;
+}
+
+.button {
+  min-height: 44px;
+  padding: 0 16px;
+  border-radius: 6px;
+  border: none;
+  background: var(--claret);
+  color: white;
+  font-weight: 600;
+  font-size: 0.85rem;
+  cursor: pointer;
+  align-self: flex-start;
+}
+
+.button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.dangerButton {
+  min-height: 44px;
+  padding: 0 16px;
+  border-radius: 6px;
+  border: 1px solid var(--crit-soft);
+  background: var(--paper-raised);
+  color: var(--crit);
+  font-size: 0.85rem;
+  cursor: pointer;
+  align-self: flex-start;
+}
+
+.meta {
+  color: var(--ink-soft);
+  font-size: 0.9rem;
+  margin: 0;
+}
+
+.error {
+  background: var(--crit-soft);
+  color: var(--crit);
+  border-radius: 6px;
+  padding: 10px 12px;
+  font-size: 0.85rem;
+}
+
+.success {
+  background: var(--ok-soft);
+  color: var(--ok);
+  border-radius: 6px;
+  padding: 10px 12px;
+  font-size: 0.85rem;
+}

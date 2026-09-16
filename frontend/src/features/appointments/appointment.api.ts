@@ -15,7 +15,11 @@ export const appointmentApi = baseApi.injectEndpoints({
       transformResponse: (res: { slots: AvailabilitySlot[] }) => res.slots,
     }),
     listAppointments: build.query<Appointment[], ListAppointmentsParams>({
-      query: ({ staffId, date }) => `/appointments?staffId=${staffId}&date=${date}`,
+      query: (params) => {
+        if ("customerId" in params) return `/appointments?customerId=${params.customerId}`;
+        const staffPart = params.staffId !== undefined ? `&staffId=${params.staffId}` : "";
+        return `/appointments?date=${params.date}${staffPart}`;
+      },
       transformResponse: (res: { appointments: Appointment[] }) => res.appointments,
       providesTags: (result) =>
         result
@@ -29,6 +33,11 @@ export const appointmentApi = baseApi.injectEndpoints({
       query: (body) => ({ url: "/appointments", method: "POST", body }),
       transformResponse: (res: { appointment: Appointment }) => res.appointment,
       invalidatesTags: [{ type: "Appointment", id: "LIST" }],
+    }),
+    confirmAppointment: build.mutation<Appointment, number>({
+      query: (id) => ({ url: `/appointments/${id}/confirm`, method: "PATCH" }),
+      transformResponse: (res: { appointment: Appointment }) => res.appointment,
+      invalidatesTags: (_result, _error, id) => [{ type: "Appointment", id }],
     }),
     cancelAppointment: build.mutation<Appointment, number>({
       query: (id) => ({ url: `/appointments/${id}/cancel`, method: "PATCH" }),
@@ -52,6 +61,7 @@ export const {
   useGetAvailabilityQuery,
   useListAppointmentsQuery,
   useBookAppointmentMutation,
+  useConfirmAppointmentMutation,
   useCancelAppointmentMutation,
   useCompleteAppointmentMutation,
   useNoShowAppointmentMutation,

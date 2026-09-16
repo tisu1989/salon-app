@@ -1,29 +1,29 @@
 import { NavLink, Outlet } from "react-router-dom";
+import { useAppSelector } from "./hooks";
 import styles from "./AppShell.module.css";
-
-const NAV_ITEMS = [
-  { to: "/", label: "Today", end: true },
-  { to: "/staff", label: "Staff" },
-  { to: "/services", label: "Services" },
-];
 
 /**
  * The persistent frame every logged-in screen renders inside. Same nav items render two
  * ways depending on viewport - a fixed bottom tab bar below 1024px (phone + tablet tiers),
  * a persistent left sidebar at/above it (desktop/back-office tier) - per the Blueprint's
- * "Responsive rules" section. CSS media queries pick one; both exist in the DOM at once.
+ * "Responsive rules" section. "Manage" only renders for ADMIN, matching the Navigation
+ * map's "admin-only branches simply don't render for a Staff account."
  */
 export function AppShell() {
+  const isAdmin = useAppSelector((s) => s.auth.staff?.role === "ADMIN");
+
+  const navItems = [
+    { to: "/", label: "Today", end: true },
+    { to: "/customers", label: "Customers" },
+    ...(isAdmin ? [{ to: "/manage", label: "Manage" }] : []),
+    { to: "/account", label: "Account" },
+  ];
+
   return (
     <div className={styles.shell}>
       <nav className={styles.sidebar} aria-label="Primary">
-        {NAV_ITEMS.map((item) => (
-          <NavLink
-            key={item.to}
-            to={item.to}
-            end={item.end}
-            className={styles.sidebarLink}
-          >
+        {navItems.map((item) => (
+          <NavLink key={item.to} to={item.to} end={item.end} className={styles.sidebarLink}>
             {item.label}
           </NavLink>
         ))}
@@ -34,7 +34,7 @@ export function AppShell() {
       </main>
 
       <nav className={styles.tabBar} aria-label="Primary">
-        {NAV_ITEMS.map((item) => (
+        {navItems.map((item) => (
           <NavLink key={item.to} to={item.to} end={item.end} className={styles.tabLink}>
             {item.label}
           </NavLink>

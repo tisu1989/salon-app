@@ -8,13 +8,18 @@ import { AppointmentRow } from "./AppointmentRow";
 import { toDateInputValue } from "../../lib/date";
 import styles from "./TodayBoardPage.module.css";
 
+const ALL_STAFF = "ALL";
+
 export function TodayBoardPage() {
   const currentStaff = useAppSelector((s) => s.auth.staff);
   const isAdmin = currentStaff?.role === "ADMIN";
   const [searchParams] = useSearchParams();
 
   const [date, setDate] = useState(() => searchParams.get("date") ?? toDateInputValue(new Date()));
-  const [staffId, setStaffId] = useState<number>(currentStaff?.id ?? 0);
+  // Admins default to the salon-wide board; a staff login only ever sees their own day.
+  const [staffFilter, setStaffFilter] = useState<number | typeof ALL_STAFF>(
+    isAdmin ? ALL_STAFF : (currentStaff?.id ?? ALL_STAFF),
+  );
 
   const { data: staffList } = useListStaffQuery(undefined, { skip: !isAdmin });
   const { data: services } = useListServicesQuery();
@@ -22,13 +27,21 @@ export function TodayBoardPage() {
     data: appointments,
     isLoading,
     isError,
-  } = useListAppointmentsQuery({ staffId, date }, { skip: !staffId });
+  } = useListAppointmentsQuery(
+    staffFilter === ALL_STAFF ? { date } : { date, staffId: staffFilter },
+  );
 
   const serviceNameById = useMemo(() => {
     const map = new Map<number, string>();
     for (const service of services ?? []) map.set(service.id, service.name);
     return map;
   }, [services]);
+
+  const staffNameById = useMemo(() => {
+    const map = new Map<number, string>();
+    for (const member of staffList ?? []) map.set(member.id, member.name);
+    return map;
+  }, [staffList]);
 
   const sorted = useMemo(
     () =>
@@ -55,10 +68,13 @@ export function TodayBoardPage() {
         {isAdmin && (
           <label className={styles.control}>
             Staff
-            <select value={staffId} onChange={(e) => setStaffId(Number(e.target.value))}>
-              <option value={0} disabled>
-                Choose staff…
-              </option>
+            <select
+              value={staffFilter}
+              onChange={(e) =>
+                setStaffFilter(e.target.value === ALL_STAFF ? ALL_STAFF : Number(e.target.value))
+              }
+            >
+              <option value={ALL_STAFF}>All staff</option>
               {staffList?.map((member) => (
                 <option key={member.id} value={member.id}>
                   {member.name}
@@ -81,6 +97,9 @@ export function TodayBoardPage() {
             key={appointment.id}
             appointment={appointment}
             serviceName={serviceNameById.get(appointment.serviceId) ?? `Service #${appointment.serviceId}`}
+            {...(staffFilter === ALL_STAFF && {
+              staffName: staffNameById.get(appointment.staffId) ?? `Staff #${appointment.staffId}`,
+            })}
           />
         ))}
       </div>
