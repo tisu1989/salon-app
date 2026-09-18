@@ -9,7 +9,7 @@ a staff/admin web panel, MySQL + Prisma, Redis (cache, pub/sub, session state).
 - **Frontend:** React + Redux Toolkit (RTK Query) + TypeScript + React Router + Vite — a
   responsive web app, mobile-first, no native app
 - **ORM:** Prisma + MySQL
-- **Cache/PubSub:** Redis (ioredis)
+- **Cache/PubSub/Queue:** Redis (ioredis), BullMQ (notifications + exports)
 - **Auth:** JWT (access + refresh, rotation, Redis-backed revocation), bcrypt, RBAC (STAFF/ADMIN)
 - **Validation:** Zod
 - **Testing:** Vitest + Supertest, integration tests against a real isolated test DB
@@ -24,7 +24,8 @@ change-password), staff (CRUD, working hours, time off, admin password reset), s
 customers (search/create/get), appointments (book, availability, list by staff/day/salon-wide/
 customer, confirm/cancel/complete/no-show), notifications (queued confirmations + reminders,
 retry-with-backoff worker, pub/sub instant delivery, manual admin retry, REST log), and the
-WhatsApp booking bot. Deep `/health` check. 66 automated tests (unit + integration).
+WhatsApp booking bot (customer-facing only — booking via button/list flow, not free text).
+Deep `/health` check. 66 automated tests (unit + integration).
 
 **Frontend — MVP screens all built and wired to the real API**, not mocked: Login, Today's Board
 (per-staff or salon-wide for admins), New Booking wizard, Customer directory + profile (with
@@ -32,6 +33,21 @@ booking history), Staff directory + per-person detail/schedule editor, Service m
 Notification log with manual retry, and an Account page (self-service password change, logout).
 
 ## What's genuinely still pending
+
+- **Staff/Admin in-dashboard chatbot.** A floating chat widget in the web app (staff/admin only,
+  behind login) for natural-language requests — "mark my 3pm done," "what's my schedule today,"
+  "no-show report this week." Design: an LLM with tool-calling (Groq or Anthropic API, free tier)
+  maps the request to a structured action and calls the *existing* service-layer functions
+  directly (`appointmentService`, `staffService`) — the LLM never touches the DB itself. Backend:
+  `POST /api/v1/chat`, authenticated via the existing JWT (identifies staff id + role, no separate
+  identity lookup needed), routed through a new `staffBotFlow` module shared in spirit with the
+  WhatsApp bot's flow logic. Frontend: a floating chat bubble component with local component state
+  for message history (not Redux — ephemeral UI state, nothing else in the app needs to read it).
+  Deliberately scoped as dashboard-only, not a WhatsApp transport — WhatsApp is reserved for
+  customer booking.
+- **Exports/reports queue.** A second BullMQ queue (alongside the existing notifications queue) so
+  admin can request a CSV/report export (e.g. "export today's appointments") without blocking the
+  request — the worker generates the file async, admin is notified when it's ready.
 - **CORS allow-list.** `app.use(cors())` in `backend/src/app.ts` is still wide open — tighten it
   to the real frontend origin(s) before this goes anywhere near production.
 - **Production deployment.** Everything above only runs locally via Docker Compose right now; no
