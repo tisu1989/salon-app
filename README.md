@@ -48,12 +48,11 @@ Notification log with manual retry, and an Account page (self-service password c
 - **Exports/reports queue.** A second BullMQ queue (alongside the existing notifications queue) so
   admin can request a CSV/report export (e.g. "export today's appointments") without blocking the
   request — the worker generates the file async, admin is notified when it's ready.
-- **Production deployment.** Everything above only runs locally via Docker Compose right now; no
-  Render/Upstash/Railway/Cloudflare (or equivalent) setup exists yet.
+- **Production deployment - prepared, not yet done.** The repo is deploy-ready (graceful shutdown, `render.yaml`, first-admin script, [docs/deployment.md](docs/deployment.md), [ADR 0001](docs/adr/0001-hosting-and-single-instance.md)); creating the actual Render/Aiven/Upstash/Cloudflare accounts and going live is the remaining step.
 - **Dedicated Appointment Detail screen.** Appointments are currently viewed/acted on inline (in
   Today's Board and a customer's history), not as their own routed page.
 - **Offline-tolerant booking queue.** For flaky front-desk wifi — not started.
-- **ADRs.** `docs/adr/` doesn't exist yet — see the note below.
+- **More ADRs.** `docs/adr/` has its first record (hosting); add one per big decision — see the note below.
 
 ## Getting started
 
@@ -106,5 +105,4 @@ booking wizard end to end). Both suites run in CI.
 
 ## Architecture Decision Records
 Keep a short note per big decision in `docs/adr/` — e.g. "why Prisma over Sequelize", "why Redis
-for bot session state", "why plain React over React Native for the frontend". Not started yet;
-this is what makes a portfolio repo read as senior-level, not just a note-to-self.
+for bot session state", "why plain React over React Native for the frontend". One exists so far (hosting and the single-instance rule); this is what makes a portfolio repo read as senior-level, not just a note-to-self.
