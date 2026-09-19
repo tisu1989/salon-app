@@ -7,3 +7,6 @@ build/
 *.log
 coverage/
 .DS_Store
+
+# Claude Code local state (symlinks to installed skills, runtime locks) - machine-specific
+.claude/
