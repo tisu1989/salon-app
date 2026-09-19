@@ -6,16 +6,17 @@ import { env } from "../../config/env.js";
  * we only act on webhook calls that genuinely came from WhatsApp.
  *
  * WHATSAPP_APP_SECRET is optional in env.ts (the app runs fine without a
- * configured WhatsApp integration) - if it's unset we skip verification and log
- * a warning rather than reject every call, since there's nothing to check against.
+ * configured WhatsApp integration), but /webhook is unauthenticated - so with no
+ * secret to verify against, this fails closed and rejects every call rather than
+ * letting anyone on the internet forge inbound messages.
  */
 export function isValidWebhookSignature(
   rawBody: Buffer,
   signatureHeader: string | undefined,
 ): boolean {
   if (!env.WHATSAPP_APP_SECRET) {
-    console.warn("WHATSAPP_APP_SECRET not configured - skipping webhook signature verification.");
-    return true;
+    console.warn("WHATSAPP_APP_SECRET not configured - rejecting webhook call.");
+    return false;
   }
 
   if (!signatureHeader?.startsWith("sha256=")) {
