@@ -27,7 +27,7 @@ retry-with-backoff worker, pub/sub instant delivery, manual admin retry, REST lo
 WhatsApp booking bot (customer-facing only — booking via button/list flow, not free text).
 Deep `/health` check. 76 automated tests (unit + integration). Hardened per a security audit: fail-closed webhook signature check, per-IP login lockout, CORS allow-list, rate limits on public endpoints.
 
-**Frontend — MVP screens all built and wired to the real API**, not mocked: Login, Today's Board
+**Frontend — MVP screens all built and wired to the real API** (15 tests covering login, the booking wizard, auth state and booking-step logic), not mocked: Login, Today's Board
 (per-staff or salon-wide for admins), New Booking wizard, Customer directory + profile (with
 booking history), Staff directory + per-person detail/schedule editor, Service menu CRUD,
 Notification log with manual retry, and an Account page (self-service password change, logout).
@@ -98,7 +98,11 @@ Redux DevTools (browser extension) works in dev builds for inspecting actions, a
 ### Tests
 ```
 cd backend && npm test            # needs the test DB/Redis - see backend/.env.test.example
+cd frontend && npm test           # no services needed - the API is faked with MSW
 ```
+Frontend tests use Vitest + React Testing Library + MSW, in three layers: pure logic
+(`booking-draft`), state (the auth slice), and whole screens driven like a user (login, and the
+booking wizard end to end). Both suites run in CI.
 
 ## Architecture Decision Records
 Keep a short note per big decision in `docs/adr/` — e.g. "why Prisma over Sequelize", "why Redis

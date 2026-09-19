@@ -49,14 +49,19 @@ export function NewBookingWizard() {
       return;
     }
     if (!draft.customer || !draft.serviceId || !draft.staffId || !draft.slot) return;
-    const appointment = await bookAppointment({
-      customerId: draft.customer.id,
-      staffId: draft.staffId,
-      serviceId: draft.serviceId,
-      startTime: draft.slot.start,
-      endTime: draft.slot.end,
-    }).unwrap();
-    navigate(`/?date=${toDateInputValue(new Date(appointment.startTime))}`, { replace: true });
+    try {
+      const appointment = await bookAppointment({
+        customerId: draft.customer.id,
+        staffId: draft.staffId,
+        serviceId: draft.serviceId,
+        startTime: draft.slot.start,
+        endTime: draft.slot.end,
+      }).unwrap();
+      navigate(`/?date=${toDateInputValue(new Date(appointment.startTime))}`, { replace: true });
+    } catch {
+      // Nothing to do here: the mutation state (bookError) already drives the message on screen.
+      // Catching stops the rejection escaping the click handler as an uncaught error.
+    }
   };
 
   return (
