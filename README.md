@@ -25,7 +25,7 @@ customers (search/create/get), appointments (book, availability, list by staff/d
 customer, confirm/cancel/complete/no-show), notifications (queued confirmations + reminders,
 retry-with-backoff worker, pub/sub instant delivery, manual admin retry, REST log), and the
 WhatsApp booking bot (customer-facing only — booking via button/list flow, not free text).
-Deep `/health` check. 66 automated tests (unit + integration).
+Deep `/health` check. 76 automated tests (unit + integration). Hardened per a security audit: fail-closed webhook signature check, per-IP login lockout, CORS allow-list, rate limits on public endpoints.
 
 **Frontend — MVP screens all built and wired to the real API**, not mocked: Login, Today's Board
 (per-staff or salon-wide for admins), New Booking wizard, Customer directory + profile (with
@@ -48,21 +48,12 @@ Notification log with manual retry, and an Account page (self-service password c
 - **Exports/reports queue.** A second BullMQ queue (alongside the existing notifications queue) so
   admin can request a CSV/report export (e.g. "export today's appointments") without blocking the
   request — the worker generates the file async, admin is notified when it's ready.
-- **CORS allow-list.** `app.use(cors())` in `backend/src/app.ts` is still wide open — tighten it
-  to the real frontend origin(s) before this goes anywhere near production.
 - **Production deployment.** Everything above only runs locally via Docker Compose right now; no
   Render/Upstash/Railway/Cloudflare (or equivalent) setup exists yet.
 - **Dedicated Appointment Detail screen.** Appointments are currently viewed/acted on inline (in
   Today's Board and a customer's history), not as their own routed page.
 - **Offline-tolerant booking queue.** For flaky front-desk wifi — not started.
 - **ADRs.** `docs/adr/` doesn't exist yet — see the note below.
-- **Debugger setup (backend + frontend).** Step-through debugging with breakpoints in both apps
-  from one place (VS Code `.vscode/launch.json`). Backend: attach to or launch `tsx watch` with
-  source maps, including a variant that attaches to the Docker dev container (`docker-compose.dev.yml`)
-  via the Node inspector port, plus a config for debugging a single Vitest integration test.
-  Frontend: launch Chrome against the Vite dev server (`localhost:5183`) with source maps so
-  breakpoints in `.tsx` files hit, plus Redux DevTools wired into the store for inspecting RTK
-  Query cache and auth state. A compound "Debug full stack" config should start both sides together.
 
 ## Getting started
 
@@ -90,6 +81,19 @@ npm install
 cp .env.example .env              # VITE_API_BASE_URL - point at wherever the backend is running
 npm run dev
 ```
+
+### Debugging
+Breakpoint debugging is preconfigured in `.vscode/launch.json` (Run and Debug panel):
+
+| Configuration | What it does |
+|---|---|
+| **Backend: launch (tsx)** | Runs the API natively under the debugger on port 4003. Needs `docker compose up -d mysql redis` first. |
+| **Backend: attach to Docker dev container** | Attaches to the hot-reload container (inspector on `127.0.0.1:9229`). Start it with `docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d api`. Re-attaches on each reload. |
+| **Backend: debug current test file (vitest)** | Runs the open `*.test.ts` file under the debugger (integration tests need the test DB/Redis). |
+| **Frontend: dev server + Chrome** | Starts Vite on :5183 and opens Chrome attached to it, so breakpoints in `.tsx` files hit. Points at the native backend (:4003) - edit `VITE_API_BASE_URL` in the config to use the Docker api (:4002) instead. |
+| **Full stack: backend + frontend** | Starts the native backend and the frontend together. |
+
+Redux DevTools (browser extension) works in dev builds for inspecting actions, auth state and the RTK Query cache; it is disabled in production builds. The Docker inspector port is bound to localhost only - never expose 9229, it allows remote code execution.
 
 ### Tests
 ```

@@ -1,0 +1,70 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      // Runs the API natively under the debugger (tsx compiles TS + source maps on the fly).
+      // Port 4003 because the Docker `api` container owns 4002. Needs MySQL + Redis up:
+      //   docker compose up -d mysql redis
+      "name": "Backend: launch (tsx)",
+      "type": "node",
+      "request": "launch",
+      "cwd": "${workspaceFolder}/backend",
+      "program": "${workspaceFolder}/backend/src/server.ts",
+      "runtimeArgs": ["--import", "tsx"],
+      "envFile": "${workspaceFolder}/backend/.env",
+      "env": { "PORT": "4003" },
+      "console": "integratedTerminal",
+      "skipFiles": ["<node_internals>/**", "${workspaceFolder}/backend/node_modules/**"]
+    },
+    {
+      // Attaches to the hot-reload dev container. Start it first:
+      //   docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d api
+      // `restart` re-attaches automatically each time tsx watch reloads the server.
+      "name": "Backend: attach to Docker dev container",
+      "type": "node",
+      "request": "attach",
+      "address": "localhost",
+      "port": 9229,
+      "localRoot": "${workspaceFolder}/backend",
+      "remoteRoot": "/app",
+      "restart": true,
+      "skipFiles": ["<node_internals>/**", "**/node_modules/**"]
+    },
+    {
+      // Debug the test file that's open in the editor (integration tests need the test DB/Redis).
+      "name": "Backend: debug current test file (vitest)",
+      "type": "node",
+      "request": "launch",
+      "cwd": "${workspaceFolder}/backend",
+      "program": "${workspaceFolder}/backend/node_modules/vitest/vitest.mjs",
+      "args": ["run", "${fileBasename}", "--pool=forks", "--poolOptions.forks.singleFork"],
+      "autoAttachChildProcesses": true,
+      "console": "integratedTerminal",
+      "skipFiles": ["<node_internals>/**", "${workspaceFolder}/backend/node_modules/**"]
+    },
+    {
+      // Starts the Vite dev server, then opens Chrome attached to it once it prints its URL,
+      // so breakpoints in .tsx files hit. Points the app at the natively-launched backend (4003);
+      // change VITE_API_BASE_URL to :4002 to debug the frontend against the Docker api instead.
+      "name": "Frontend: dev server + Chrome",
+      "type": "node-terminal",
+      "request": "launch",
+      "command": "npm run dev -- --port 5183 --strictPort",
+      "cwd": "${workspaceFolder}/frontend",
+      "env": { "VITE_API_BASE_URL": "http://localhost:4003/api/v1", "NO_COLOR": "1" },
+      "serverReadyAction": {
+        "pattern": "Local:.*(http://localhost:\\d+)",
+        "uriFormat": "%s",
+        "action": "debugWithChrome",
+        "webRoot": "${workspaceFolder}/frontend"
+      }
+    }
+  ],
+  "compounds": [
+    {
+      "name": "Full stack: backend + frontend",
+      "configurations": ["Backend: launch (tsx)", "Frontend: dev server + Chrome"],
+      "stopAll": true
+    }
+  ]
+}

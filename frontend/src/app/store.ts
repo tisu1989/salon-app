@@ -8,6 +8,9 @@ export const store = configureStore({
     [baseApi.reducerPath]: baseApi.reducer,
   },
   middleware: (getDefaultMiddleware) => getDefaultMiddleware().concat(baseApi.middleware),
+  // Redux DevTools browser extension: inspect actions, auth state, and the RTK Query cache.
+  // Off in production builds so state (including the access token) isn't inspectable there.
+  devTools: import.meta.env.DEV,
 });
 
 export type RootState = ReturnType<typeof store.getState>;

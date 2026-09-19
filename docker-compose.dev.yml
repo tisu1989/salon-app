@@ -9,7 +9,12 @@
 # file alone (no -f docker-compose.dev.yml) when you want that guarantee back.
 services:
   api:
-    command: ["npm", "run", "dev"]
+    # --inspect opens Node's debugger port so VS Code can attach ("Backend: attach to Docker
+    # dev container" in .vscode/launch.json). Bound to 127.0.0.1 below: the inspector has no
+    # auth, so anyone who can reach it can run code in the process.
+    command: ["npx", "tsx", "watch", "--inspect=0.0.0.0:9229", "src/server.ts"]
+    ports:
+      - "127.0.0.1:9229:9229"
     environment:
       NODE_ENV: development
       # tsx's file watcher needs polling to reliably see changes through a
