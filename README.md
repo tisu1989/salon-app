@@ -48,7 +48,7 @@ Notification log with manual retry, and an Account page (self-service password c
 - **Exports/reports queue.** A second BullMQ queue (alongside the existing notifications queue) so
   admin can request a CSV/report export (e.g. "export today's appointments") without blocking the
   request — the worker generates the file async, admin is notified when it's ready.
-- **Production deployment - prepared, not yet done.** The repo is deploy-ready (graceful shutdown, `render.yaml`, first-admin script, [docs/deployment.md](docs/deployment.md), [ADR 0001](docs/adr/0001-hosting-and-single-instance.md)); creating the actual Render/Aiven/Upstash/Cloudflare accounts and going live is the remaining step.
+- **Production deployment - prepared, not yet done.** The repo is deploy-ready (graceful shutdown, `backend/railway.toml`, first-admin script, [docs/deployment.md](docs/deployment.md), [ADR 0001](docs/adr/0001-hosting-and-single-instance.md)); creating the actual Railway and Cloudflare Pages projects and going live is the remaining step.
 - **Dedicated Appointment Detail screen.** Appointments are currently viewed/acted on inline (in
   Today's Board and a customer's history), not as their own routed page.
 - **Offline-tolerant booking queue.** For flaky front-desk wifi — not started.

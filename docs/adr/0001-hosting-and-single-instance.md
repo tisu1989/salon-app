@@ -1,18 +1,21 @@
 # ADR 0001: Hosting layout, and running exactly one API instance
 
-Status: accepted
+Status: accepted (revised: Railway instead of Render + Aiven + Upstash)
 
 ## Decision
 - Frontend: static build on Cloudflare Pages.
-- API: one Docker web service on Render (`render.yaml`).
-- MySQL: managed (Aiven free tier). Redis: managed (Upstash free tier, `rediss://` TLS).
-- Deploy on push to `main`, gated on GitHub Actions passing. No custom deploy scripts.
+- API + MySQL + Redis: one Railway project - the API as a Docker service (`backend/railway.toml`),
+  MySQL and Redis as Railway database services reached over Railway's private network.
+- Deploy on push to `main`, with Railway's "Wait for CI" on. No custom deploy scripts.
+- Uptime pings from cron-job.org to `/health` (also gives failure alerts).
 - **Exactly one API instance.** Do not scale horizontally without first changing the points below.
 
 ## Why
-Each piece is the cheapest option that fits its shape: static files need no server, the API needs
-a long-lived process, and MySQL/Redis are not worth self-hosting. Letting the platforms pull from
-Git removes a whole class of "deploy script" bugs and reuses CI as the quality gate.
+One provider for the three server-side pieces means one bill, one dashboard, and private-network
+connections (no public database endpoint, no TLS setup, less latency). The developer already runs
+another app on Render; using Railway here also keeps the two projects' free/paid limits separate.
+Static files need no server, so Pages stays. Letting the platforms pull from Git removes deploy-script
+bugs and reuses CI as the quality gate.
 
 ## Why only one instance
 The API process also runs the notification worker and the pub/sub subscriber. With two instances:
@@ -23,8 +26,12 @@ The API process also runs the notification worker and the pub/sub subscriber. Wi
 Before scaling out: claim notifications atomically (e.g. `UPDATE ... WHERE status='PENDING'` and
 check the affected row count, or a Redis lock), and move migrations to a one-off release step.
 
-## Known consequence: free-tier sleep
-Render's free web services sleep after ~15 minutes without traffic. A sleeping process runs no
-worker, so reminders would not send. Either use a paid always-on instance, or ping `/health` every
-few minutes from an uptime monitor (see docs/deployment.md). Confirmations sent at booking time are
-unaffected while the request that triggered them is awake.
+## Sleeping and reminders
+The reminder worker lives inside the API process, so it only runs while the process is up. Railway
+services run continuously by default; only turn on Railway's "App Sleeping" if you accept that
+reminders stop while asleep. The cron-job.org ping is a monitor first (alerts you if the API is
+down) and a wake-up second (only matters if sleeping is enabled).
+
+## Trade-off
+Railway is usage-billed rather than free-forever: an always-on API + MySQL + Redis costs a few
+dollars a month. Check current pricing before relying on it.
