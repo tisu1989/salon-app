@@ -15,9 +15,14 @@ import {
 const BCRYPT_ROUNDS = 12;
 const REFRESH_TOKEN_TTL_SECONDS = durationStringToSeconds(env.JWT_REFRESH_EXPIRES_IN);
 
+// Two independent counters share one 15-minute window (started by the first failure):
+//  - per identifier + IP: 5 failures blocks that IP from that account. Keyed on IP too so a
+//    stranger who knows a staff phone number can only lock out their own address, not the
+//    real owner from theirs.
+//  - per IP alone: 30 failures blocks that IP entirely, so one address cannot spray guesses
+//    across many accounts while staying under the per-account limit.
 const MAX_FAILED_LOGIN_ATTEMPTS = 5;
-// A 15-minute window starts on the first failed attempt for an identifier; hitting
-// MAX_FAILED_LOGIN_ATTEMPTS within it blocks further tries until the window expires.
+const MAX_FAILED_LOGIN_ATTEMPTS_PER_IP = 30;
 const LOGIN_LOCKOUT_WINDOW_SECONDS = 15 * 60;
 
 export interface AuthTokens {
@@ -39,8 +44,12 @@ function refreshTokenKey(staffId: number, jti: string): string {
   return `auth:refresh:${staffId}:${jti}`;
 }
 
-function loginFailuresKey(identifier: string): string {
-  return `auth:login-fails:${identifier}`;
+function loginFailuresKey(identifier: string, ip: string): string {
+  return `auth:login-fails:${ip}:${identifier}`;
+}
+
+function ipFailuresKey(ip: string): string {
+  return `auth:login-fails-ip:${ip}`;
 }
 
 export class AuthService {
@@ -57,11 +66,18 @@ export class AuthService {
   async login(
     identifier: string,
     password: string,
+    ip: string,
   ): Promise<{ staff: AuthenticatedStaff; tokens: AuthTokens }> {
-    const failuresKey = loginFailuresKey(identifier);
+    const failuresKey = loginFailuresKey(identifier, ip);
+    const ipKey = ipFailuresKey(ip);
 
-    const failedAttempts = Number(await this.redis.get(failuresKey)) || 0;
-    if (failedAttempts >= MAX_FAILED_LOGIN_ATTEMPTS) {
+    const [failedAttempts, failedFromIp] = (await this.redis.mget(failuresKey, ipKey)).map(
+      (count) => Number(count) || 0,
+    ) as [number, number];
+    if (
+      failedAttempts >= MAX_FAILED_LOGIN_ATTEMPTS ||
+      failedFromIp >= MAX_FAILED_LOGIN_ATTEMPTS_PER_IP
+    ) {
       throw new AppError(
         "TOO_MANY_ATTEMPTS",
         "Too many failed login attempts. Please try again in a few minutes.",
@@ -76,13 +92,13 @@ export class AuthService {
       new AppError("INVALID_CREDENTIALS", "Incorrect phone/email or password.", 401);
 
     if (!staff || !staff.isActive) {
-      await this.recordFailedLogin(failuresKey);
+      await this.recordFailedLogin(failuresKey, ipKey);
       throw invalidCredentials();
     }
 
     const passwordMatches = await bcrypt.compare(password, staff.passwordHash);
     if (!passwordMatches) {
-      await this.recordFailedLogin(failuresKey);
+      await this.recordFailedLogin(failuresKey, ipKey);
       throw invalidCredentials();
     }
 
@@ -93,10 +109,12 @@ export class AuthService {
     return { staff: toPublicStaff(staff), tokens };
   }
 
-  private async recordFailedLogin(key: string): Promise<void> {
-    const attemptsInWindow = await this.redis.incr(key);
-    if (attemptsInWindow === 1) {
-      await this.redis.expire(key, LOGIN_LOCKOUT_WINDOW_SECONDS);
+  private async recordFailedLogin(...keys: string[]): Promise<void> {
+    for (const key of keys) {
+      const attemptsInWindow = await this.redis.incr(key);
+      if (attemptsInWindow === 1) {
+        await this.redis.expire(key, LOGIN_LOCKOUT_WINDOW_SECONDS);
+      }
     }
   }
 

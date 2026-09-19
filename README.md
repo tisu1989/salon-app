@@ -56,6 +56,13 @@ Notification log with manual retry, and an Account page (self-service password c
   Today's Board and a customer's history), not as their own routed page.
 - **Offline-tolerant booking queue.** For flaky front-desk wifi — not started.
 - **ADRs.** `docs/adr/` doesn't exist yet — see the note below.
+- **Debugger setup (backend + frontend).** Step-through debugging with breakpoints in both apps
+  from one place (VS Code `.vscode/launch.json`). Backend: attach to or launch `tsx watch` with
+  source maps, including a variant that attaches to the Docker dev container (`docker-compose.dev.yml`)
+  via the Node inspector port, plus a config for debugging a single Vitest integration test.
+  Frontend: launch Chrome against the Vite dev server (`localhost:5183`) with source maps so
+  breakpoints in `.tsx` files hit, plus Redux DevTools wired into the store for inspecting RTK
+  Query cache and auth state. A compound "Debug full stack" config should start both sides together.
 
 ## Getting started
 

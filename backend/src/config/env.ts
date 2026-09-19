@@ -11,6 +11,12 @@ const envSchema = z
     REDIS_URL: z.string().min(1, "REDIS_URL is required"),
     JWT_ACCESS_SECRET: z.string().min(1),
     JWT_REFRESH_SECRET: z.string().min(1),
+    // Comma-separated browser origins allowed to call the API. Unset = dev localhost defaults
+    // outside production, and no cross-origin access at all in production.
+    CORS_ORIGINS: z.string().optional(),
+    // Number of reverse proxies in front of the API (e.g. 1 on Render) so req.ip is the real
+    // client, not the proxy. Leave unset when the API is exposed directly.
+    TRUST_PROXY: z.coerce.number().int().min(0).optional(),
     JWT_ACCESS_EXPIRES_IN: z.string().default("15m"),
     JWT_REFRESH_EXPIRES_IN: z.string().default("7d"),
     WHATSAPP_VERIFY_TOKEN: z.string().optional(),

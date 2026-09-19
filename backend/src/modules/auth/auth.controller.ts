@@ -19,7 +19,11 @@ export class AuthController {
 
   login = async (req: Request, res: Response): Promise<void> => {
     const { identifier, password } = req.body as LoginDto;
-    const { staff, tokens } = await this.authService.login(identifier, password);
+    const { staff, tokens } = await this.authService.login(
+      identifier,
+      password,
+      req.ip ?? "unknown",
+    );
     res.status(200).json({ staff, ...tokens });
   };
 

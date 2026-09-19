@@ -2,7 +2,10 @@ import cors from "cors";
 import express, { type Express } from "express";
 import helmet from "helmet";
 import { pinoHttp } from "pino-http";
+import { env } from "./config/env.js";
+import { buildCorsOptions, resolveAllowedOrigins } from "./config/cors.js";
 import { errorHandler } from "./middleware/error-handler.js";
+import { refreshRateLimit, webhookRateLimit } from "./middleware/rate-limit.js";
 import { controllers } from "./container.js";
 import { prisma } from "./config/prisma.js";
 import { redis } from "./config/redis.js";
@@ -19,8 +22,14 @@ import { createNotificationRouter } from "./modules/notification/notification.ro
 export function createApp(): Express {
   const app = express();
 
+  // Only set when the API sits behind reverse proxies - otherwise req.ip (used for login
+  // lockout and rate limits) would be the proxy for everyone, or spoofable via X-Forwarded-For.
+  if (env.TRUST_PROXY !== undefined) {
+    app.set("trust proxy", env.TRUST_PROXY);
+  }
+
   app.use(helmet());
-  app.use(cors()); // tighten to an allow-list once frontend origin is known
+  app.use(cors(buildCorsOptions(resolveAllowedOrigins(env.CORS_ORIGINS, env.NODE_ENV))));
   app.use(
     express.json({
       // Stashes the exact bytes received, before JSON parsing - the WhatsApp
@@ -40,13 +49,14 @@ export function createApp(): Express {
     }),
   );
 
+  app.use("/api/v1/auth/refresh", refreshRateLimit);
   app.use("/api/v1/auth", createAuthRouter(controllers.auth));
   app.use("/api/v1/appointments", createAppointmentRouter(controllers.appointment));
   app.use("/api/v1/staff", createStaffRouter(controllers.staff));
   app.use("/api/v1/services", createServiceRouter(controllers.service));
   app.use("/api/v1/customers", createCustomerRouter(controllers.customer));
   app.use("/api/v1/notifications", createNotificationRouter(controllers.notification));
-  app.use("/webhook", createWhatsappRouter(controllers.whatsapp));
+  app.use("/webhook", webhookRateLimit, createWhatsappRouter(controllers.whatsapp));
 
   // Must be registered last
   app.use(errorHandler);
