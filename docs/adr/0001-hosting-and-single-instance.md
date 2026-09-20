@@ -1,21 +1,33 @@
-# ADR 0001: Hosting layout, and running exactly one API instance
+# ADR 0001: Free-tier hosting, and running exactly one API instance
 
-Status: accepted (revised: Railway instead of Render + Aiven + Upstash)
+Status: accepted (revised twice: Render+Aiven+Upstash -> Railway -> back to free tier, because the
+requirement is "everything free" for now)
 
 ## Decision
-- Frontend: static build on Cloudflare Pages.
-- API + MySQL + Redis: one Railway project - the API as a Docker service (`backend/railway.toml`),
-  MySQL and Redis as Railway database services reached over Railway's private network.
-- Deploy on push to `main`, with Railway's "Wait for CI" on. No custom deploy scripts.
-- Uptime pings from cron-job.org to `/health` (also gives failure alerts).
-- **Exactly one API instance.** Do not scale horizontally without first changing the points below.
+| Piece | Host | Free-tier terms (checked from the providers' pages, not guaranteed) |
+|---|---|---|
+| Frontend | Cloudflare Pages | free static hosting |
+| API | Render free web service, **in a workspace not shared with other free services** | 750 instance hours per workspace per month; spins down after 15 min without traffic; ~1 min cold start |
+| MySQL | Aiven free MySQL | 1 GB, free forever, no card; powers off after a period of inactivity |
+| Redis | Upstash free | 500K commands/month, 256 MB |
+| Keep-awake / alarm | cron-job.org pinging `/health` every 5 min | free |
 
-## Why
-One provider for the three server-side pieces means one bill, one dashboard, and private-network
-connections (no public database endpoint, no TLS setup, less latency). The developer already runs
-another app on Render; using Railway here also keeps the two projects' free/paid limits separate.
-Static files need no server, so Pages stays. Letting the platforms pull from Git removes deploy-script
-bugs and reuses CI as the quality gate.
+Deploys happen on push to `main`, gated on GitHub Actions (`autoDeployTrigger: checksPass`).
+**Exactly one API instance.**
+
+## Why this shape
+"Everything free" removes managed all-in-one options. Each piece uses the free tier that fits its
+shape. The one real constraint is the API: 24h x 31d = 744h, and Render gives 750h per workspace, so
+a single always-awake service uses almost the whole allowance. That is why it must not share a
+workspace with another always-on free service.
+
+## Why the pings matter here
+- The reminder worker lives inside the API process, so it only runs while the process is awake. A
+  ping every 5 minutes stops the 15-minute idle spin-down, so reminders keep firing.
+- The same ping touches MySQL and Redis (`/health` checks both), which should also keep Aiven from
+  powering the database off for inactivity. Verify this after a few days.
+- If cron-job.org ever fails: the API sleeps, reminders pause, and the next request wakes it after
+  ~1 minute. The notification poll then catches up on anything overdue.
 
 ## Why only one instance
 The API process also runs the notification worker and the pub/sub subscriber. With two instances:
@@ -23,15 +35,12 @@ The API process also runs the notification worker and the pub/sub subscriber. Wi
   (`NotificationService.sendById` re-checks `PENDING`, but that check is not atomic);
 - both would run `prisma migrate deploy` at boot and could apply migrations concurrently.
 
-Before scaling out: claim notifications atomically (e.g. `UPDATE ... WHERE status='PENDING'` and
-check the affected row count, or a Redis lock), and move migrations to a one-off release step.
+Before scaling out: claim notifications atomically (`UPDATE ... WHERE status='PENDING'` and check the
+affected row count, or a Redis lock), and move migrations to a one-off release step.
 
-## Sleeping and reminders
-The reminder worker lives inside the API process, so it only runs while the process is up. Railway
-services run continuously by default; only turn on Railway's "App Sleeping" if you accept that
-reminders stop while asleep. The cron-job.org ping is a monitor first (alerts you if the API is
-down) and a wake-up second (only matters if sleeping is enabled).
-
-## Trade-off
-Railway is usage-billed rather than free-forever: an always-on API + MySQL + Redis costs a few
-dollars a month. Check current pricing before relying on it.
+## Trade-offs accepted
+- Cold starts and occasional slowness; not suitable for real customer traffic at scale.
+- Free tiers change. Re-check terms before relying on this, and expect to revisit the ADR if a
+  provider changes its limits.
+- Upgrade path when money is available: a small always-on paid API instance removes the sleep and
+  the ping dependency; the rest of the stack can stay as is.

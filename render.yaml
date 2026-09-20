@@ -1,0 +1,41 @@
+# Render "Blueprint": describes the API so it can be created from this repo (Render dashboard ->
+# New -> Blueprint). Values marked `sync: false` are secrets/URLs you type into the dashboard;
+# they never live in git. Step-by-step: docs/deployment.md
+services:
+  - type: web
+    name: salon-api
+    runtime: docker
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    # No separate migrate service (unlike docker-compose.yml), so apply pending migrations right
+    # before starting. Safe because we run exactly ONE instance (see docs/adr/0001).
+    dockerCommand: sh -c "npx prisma migrate deploy && node dist/server.js"
+    plan: free
+    # Render only switches traffic to a new deploy once this answers - a bad release can't replace
+    # a working one.
+    healthCheckPath: /health
+    # Deploy only after the GitHub Actions checks pass: CI is the gate, Render is the delivery truck.
+    autoDeployTrigger: checksPass
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: TRUST_PROXY # Render puts one reverse proxy in front of us
+        value: "1"
+      - key: JWT_ACCESS_SECRET # generated 256-bit random; satisfies the 32+ char production rule
+        generateValue: true
+      - key: JWT_REFRESH_SECRET
+        generateValue: true
+      - key: DATABASE_URL # Aiven MySQL
+        sync: false
+      - key: REDIS_URL # Upstash, must start with rediss://
+        sync: false
+      - key: CORS_ORIGINS # your Cloudflare Pages URL, e.g. https://salon-app.pages.dev
+        sync: false
+      - key: WHATSAPP_VERIFY_TOKEN
+        sync: false
+      - key: WHATSAPP_APP_SECRET
+        sync: false
+      - key: WHATSAPP_ACCESS_TOKEN
+        sync: false
+      - key: WHATSAPP_PHONE_NUMBER_ID
+        sync: false
