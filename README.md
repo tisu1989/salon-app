@@ -32,6 +32,18 @@ Deep `/health` check. 76 automated tests (unit + integration). Hardened per a se
 booking history), Staff directory + per-person detail/schedule editor, Service menu CRUD,
 Notification log with manual retry, and an Account page (self-service password change, logout).
 
+## Live deployment (all free tier)
+| Piece | Host | Address |
+|---|---|---|
+| Frontend | Cloudflare (Workers static assets) | https://salon-app.saurav-tisu.workers.dev |
+| API | Render free web service, Singapore | https://salon-api-u3ek.onrender.com (health: `/health`) |
+| MySQL | Aiven free (own database + least-privilege user) | private |
+| Redis | Upstash free, TLS | private |
+| Uptime ping | cron-job.org, `/health` every 5 min | keeps Render awake so the reminder worker runs |
+
+Every push to `main` redeploys: Render after CI passes, Cloudflare on push. Setup and troubleshooting:
+[docs/deployment.md](docs/deployment.md); reasoning and trade-offs: [ADR 0001](docs/adr/0001-hosting-and-single-instance.md).
+
 ## What's genuinely still pending
 
 - **Staff/Admin in-dashboard chatbot.** A floating chat widget in the web app (staff/admin only,
@@ -48,7 +60,6 @@ Notification log with manual retry, and an Account page (self-service password c
 - **Exports/reports queue.** A second BullMQ queue (alongside the existing notifications queue) so
   admin can request a CSV/report export (e.g. "export today's appointments") without blocking the
   request — the worker generates the file async, admin is notified when it's ready.
-- **Production deployment - prepared, not yet done.** The repo is deploy-ready (graceful shutdown, `render.yaml`, first-admin script, [docs/deployment.md](docs/deployment.md), [ADR 0001](docs/adr/0001-hosting-and-single-instance.md)); creating the actual free-tier Render, Aiven, Upstash and Cloudflare Pages accounts and going live is the remaining step.
 - **Dedicated Appointment Detail screen.** Appointments are currently viewed/acted on inline (in
   Today's Board and a customer's history), not as their own routed page.
 - **Offline-tolerant booking queue.** For flaky front-desk wifi — not started.
