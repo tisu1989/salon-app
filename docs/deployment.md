@@ -34,7 +34,7 @@ an Oracle Cloud Always Free VM (ask me and I'll write that guide).
 ## 3. API - Render free (new account)
 1. Sign up at Render with a **different email** than your laundry app. Connect GitHub.
 2. **New -> Blueprint** -> select the `salon-app` repo. It reads `render.yaml`.
-3. Fill the `sync: false` variables: `DATABASE_URL` (step 1), `REDIS_URL` (step 2), and `CORS_ORIGINS`
+3. (The Blueprint already pins the Singapore region, closest to Mumbai.) Fill the `sync: false` variables: `DATABASE_URL` (step 1), `REDIS_URL` (step 2), and `CORS_ORIGINS`
    as `https://placeholder.invalid` for now (fixed in step 5). Leave `WHATSAPP_*` empty until you have
    Meta credentials: the webhook then rejects every call, which is the safe default.
 4. Deploy. The start command applies migrations, then starts the API. Note the URL, e.g.

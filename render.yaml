@@ -11,6 +11,9 @@ services:
     # before starting. Safe because we run exactly ONE instance (see docs/adr/0001).
     dockerCommand: sh -c "npx prisma migrate deploy && node dist/server.js"
     plan: free
+    # Closest Render region to the Mumbai-hosted Aiven MySQL and Upstash Redis (Render has no India
+    # region). Without this, Render defaults to Oregon and every query crosses the Pacific.
+    region: singapore
     # Render only switches traffic to a new deploy once this answers - a bad release can't replace
     # a working one.
     healthCheckPath: /health
