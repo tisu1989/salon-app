@@ -50,6 +50,10 @@ curl -i -X POST https://<api-url>/webhook -H "Content-Type: application/json" -d
 ## 5. Frontend - Cloudflare (Workers static assets)
 Cloudflare now deploys sites as a Worker serving static files. `frontend/wrangler.jsonc` in this repo
 tells it to serve `dist/` and fall back to `index.html` so deep links like `/customers` survive a refresh.
+0. **GitHub access first:** github.com/settings/installations -> *Cloudflare Workers and Pages* -> Configure ->
+   Repository access -> add `salon-app` -> Save. Without this the wizard can still deploy once by hand, but
+   later `git push`es never trigger builds (Cloudflare leaves no check on the commit). Render's GitHub app
+   needs the same one-time grant.
 1. Workers & Pages -> **Create application** -> **Continue with GitHub** -> pick `salon-app` -> Deploy.
    (The wizard has no build fields, so this first build is expected to be wrong - fix it next.)
 2. Open the new project -> **Settings -> Builds -> Build configuration** and set:
