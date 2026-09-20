@@ -8,8 +8,10 @@ services:
     dockerfilePath: ./backend/Dockerfile
     dockerContext: ./backend
     # No separate migrate service (unlike docker-compose.yml), so apply pending migrations right
-    # before starting. Safe because we run exactly ONE instance (see docs/adr/0001).
-    dockerCommand: sh -c "npx prisma migrate deploy && node dist/server.js"
+    # before starting - see the start:migrate script in backend/package.json. Deliberately a plain
+    # `npm run` with no quotes or `&&` here: Render did not parse a quoted `sh -c "..."` command as
+    # expected (exit 127, "not found"). Safe because we run exactly ONE instance (docs/adr/0001).
+    dockerCommand: npm run start:migrate
     plan: free
     # Closest Render region to the Mumbai-hosted Aiven MySQL and Upstash Redis (Render has no India
     # region). Without this, Render defaults to Oregon and every query crosses the Pacific.
