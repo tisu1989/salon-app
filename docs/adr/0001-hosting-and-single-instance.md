@@ -6,7 +6,7 @@ requirement is "everything free" for now)
 ## Decision
 | Piece | Host | Free-tier terms (checked from the providers' pages, not guaranteed) |
 |---|---|---|
-| Frontend | Cloudflare Pages | free static hosting |
+| Frontend | Cloudflare (Workers static assets) | free static hosting |
 | API | Render free web service, **in a workspace not shared with other free services** | 750 instance hours per workspace per month; spins down after 15 min without traffic; ~1 min cold start |
 | MySQL | Aiven free MySQL | 1 GB, free forever, no card; powers off after a period of inactivity |
 | Redis | Upstash free | 500K commands/month, 256 MB |

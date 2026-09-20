@@ -47,13 +47,23 @@ curl -i -X POST https://<api-url>/webhook -H "Content-Type: application/json" -d
 ```
 `/health` reports database and redis separately, so a failure tells you which connection string is wrong.
 
-## 5. Frontend - Cloudflare Pages
-1. Pages -> connect the repo. Root directory `frontend`, build command `npm run build`, output `dist`.
-2. Environment variable `VITE_API_BASE_URL` = `https://<api-url>/api/v1`. Vite bakes this in **at build
-   time** - changing it later needs a rebuild.
-3. Deploy; note the URL, e.g. `https://salon-app.pages.dev`.
-4. In Render set `CORS_ORIGINS` to exactly that URL (scheme + host, **no trailing slash**) and redeploy.
-   A wrong value shows up as CORS errors in the browser console while `curl` still works.
+## 5. Frontend - Cloudflare (Workers static assets)
+Cloudflare now deploys sites as a Worker serving static files. `frontend/wrangler.jsonc` in this repo
+tells it to serve `dist/` and fall back to `index.html` so deep links like `/customers` survive a refresh.
+1. Workers & Pages -> **Create application** -> **Continue with GitHub** -> pick `salon-app` -> Deploy.
+   (The wizard has no build fields, so this first build is expected to be wrong - fix it next.)
+2. Open the new project -> **Settings -> Builds -> Build configuration** and set:
+   build command `npm run build`, deploy command `npx wrangler deploy`, **root directory `/frontend`**.
+3. Same page, **Build variables and secrets** (not the Runtime variables box at the top, which does not
+   apply to static-only Workers): `VITE_API_BASE_URL` = `https://<api-url>/api/v1` and `NODE_VERSION` = `22`.
+   Vite bakes the API address in **at build time** - changing it later needs a rebuild.
+4. Rebuild: push any commit to `main` (the project auto-builds on push), or retry from the Builds page.
+5. **Check the build log, not just the green tick.** A correct build runs `vite build` and uploads only a
+   handful of files (index.html + assets/). If it uploads dozens of `src/...` files it published the
+   *source code* instead of the built app - the root directory or build command is wrong.
+6. Note the site address (e.g. `https://salon-app.<account>.workers.dev`), then set `CORS_ORIGINS` in Render
+   to exactly that URL (scheme + host, **no trailing slash**) and redeploy. A wrong value shows up as CORS
+   errors in the browser console while `curl` still works.
 
 ## 6. Create the first admin (from your laptop, against the production DB)
 There is no signup, and `seed.ts` is dev-only - never run it here (it hardcodes a known password).
