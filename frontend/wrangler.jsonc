@@ -1,0 +1,11 @@
+{
+  // Cloudflare "Workers with static assets" config: serves the built site from dist/.
+  "name": "salon-app",
+  "compatibility_date": "2026-08-01",
+  "assets": {
+    "directory": "./dist",
+    // The app uses client-side routing (/customers, /staff/3, ...). A refresh on those URLs has no
+    // matching file, so fall back to index.html and let React Router take over.
+    "not_found_handling": "single-page-application"
+  }
+}
