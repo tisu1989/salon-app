@@ -380,3 +380,163 @@ describe("GET /api/v1/appointments", () => {
     expect(staffIds).toEqual([staffA.id, staffB.id].sort());
   });
 });
+
+describe("GET /api/v1/appointments/:id", () => {
+  it("returns a single appointment by id", async () => {
+    const { appointmentId, token } = await bookTestAppointment("50");
+
+    const res = await request(app)
+      .get(`/api/v1/appointments/${appointmentId}`)
+      .set("Authorization", `Bearer ${token}`);
+
+    expect(res.status).toBe(200);
+    expect(res.body.appointment.id).toBe(appointmentId);
+  });
+
+  it("404s for an appointment that doesn't exist", async () => {
+    const { token } = await bookTestAppointment("51");
+
+    const res = await request(app)
+      .get("/api/v1/appointments/999999")
+      .set("Authorization", `Bearer ${token}`);
+
+    expect(res.status).toBe(404);
+    expect(res.body.code).toBe("APPOINTMENT_NOT_FOUND");
+  });
+});
+
+describe("PATCH /api/v1/appointments/:id/reschedule", () => {
+  it("moves the appointment to a different free slot the same day", async () => {
+    const { appointmentId, token } = await bookTestAppointment("52");
+    const before = (
+      await request(app)
+        .get(`/api/v1/appointments/${appointmentId}`)
+        .set("Authorization", `Bearer ${token}`)
+    ).body.appointment;
+
+    const availability = await request(app)
+      .get("/api/v1/appointments/availability")
+      .query({
+        staffId: before.staffId,
+        serviceId: before.serviceId,
+        date: before.startTime,
+        excludeAppointmentId: appointmentId,
+      })
+      .set("Authorization", `Bearer ${token}`);
+    const newSlot = availability.body.slots.find(
+      (s: { start: string }) => s.start !== before.startTime,
+    );
+    expect(newSlot).toBeDefined();
+
+    const res = await request(app)
+      .patch(`/api/v1/appointments/${appointmentId}/reschedule`)
+      .set("Authorization", `Bearer ${token}`)
+      .send({ startTime: newSlot.start, endTime: newSlot.end });
+
+    expect(res.status).toBe(200);
+    expect(res.body.appointment.startTime).toBe(newSlot.start);
+    expect(res.body.appointment.status).toBe("BOOKED"); // reschedule doesn't touch status
+  });
+
+  it("rejects moving onto a slot another appointment already holds", async () => {
+    const staff = await createStaff(prisma, { phone: "+900000000053", role: "STAFF" });
+    await createWorkingHoursAllWeek(prisma, staff.id);
+    const service = await createService(prisma, { durationMinutes: 30 });
+    const customerA = await createCustomer(prisma, { phone: "+900000000054" });
+    const customerB = await createCustomer(prisma, { phone: "+900000000055" });
+    const token = await loginAs(app, "+900000000053");
+    const date = daysFromNow(1).toISOString();
+
+    const { body: availability } = await request(app)
+      .get("/api/v1/appointments/availability")
+      .query({ staffId: staff.id, serviceId: service.id, date })
+      .set("Authorization", `Bearer ${token}`);
+    // Slots are generated every 15 min for a 30-min service, so adjacent slots overlap each
+    // other (e.g. 9:00-9:30 and 9:15-9:45). Skip one so A and B are genuinely non-overlapping,
+    // otherwise booking B would collide with A and this test would prove nothing.
+    const slotA = availability.slots[0];
+    const slotB = availability.slots[2];
+
+    const bookingA = await request(app)
+      .post("/api/v1/appointments")
+      .set("Authorization", `Bearer ${token}`)
+      .send({
+        customerId: customerA.id,
+        staffId: staff.id,
+        serviceId: service.id,
+        startTime: slotA.start,
+        endTime: slotA.end,
+      });
+    expect(bookingA.status).toBe(201);
+
+    const bookingB = await request(app)
+      .post("/api/v1/appointments")
+      .set("Authorization", `Bearer ${token}`)
+      .send({
+        customerId: customerB.id,
+        staffId: staff.id,
+        serviceId: service.id,
+        startTime: slotB.start,
+        endTime: slotB.end,
+      });
+    expect(bookingB.status).toBe(201);
+
+    // Try to move A onto B's already-taken slot.
+    const res = await request(app)
+      .patch(`/api/v1/appointments/${bookingA.body.appointment.id}/reschedule`)
+      .set("Authorization", `Bearer ${token}`)
+      .send({ startTime: slotB.start, endTime: slotB.end });
+
+    expect(res.status).toBe(409);
+    expect(res.body.code).toBe("SLOT_UNAVAILABLE");
+  });
+
+  it("rejects rescheduling a cancelled appointment", async () => {
+    const { appointmentId, token } = await bookTestAppointment("56");
+    await request(app)
+      .patch(`/api/v1/appointments/${appointmentId}/cancel`)
+      .set("Authorization", `Bearer ${token}`);
+
+    const future = daysFromNow(2);
+    const res = await request(app)
+      .patch(`/api/v1/appointments/${appointmentId}/reschedule`)
+      .set("Authorization", `Bearer ${token}`)
+      .send({
+        startTime: future.toISOString(),
+        endTime: new Date(future.getTime() + 1800000).toISOString(),
+      });
+
+    expect(res.status).toBe(409);
+    expect(res.body.code).toBe("INVALID_STATUS_TRANSITION");
+  });
+
+  it("excludeAppointmentId lets the appointment's own current slot show as available again", async () => {
+    const { appointmentId, token } = await bookTestAppointment("57");
+    const before = (
+      await request(app)
+        .get(`/api/v1/appointments/${appointmentId}`)
+        .set("Authorization", `Bearer ${token}`)
+    ).body.appointment;
+
+    const withoutExclude = await request(app)
+      .get("/api/v1/appointments/availability")
+      .query({ staffId: before.staffId, serviceId: before.serviceId, date: before.startTime })
+      .set("Authorization", `Bearer ${token}`);
+    expect(
+      withoutExclude.body.slots.some((s: { start: string }) => s.start === before.startTime),
+    ).toBe(false);
+
+    const withExclude = await request(app)
+      .get("/api/v1/appointments/availability")
+      .query({
+        staffId: before.staffId,
+        serviceId: before.serviceId,
+        date: before.startTime,
+        excludeAppointmentId: appointmentId,
+      })
+      .set("Authorization", `Bearer ${token}`);
+    expect(
+      withExclude.body.slots.some((s: { start: string }) => s.start === before.startTime),
+    ).toBe(true);
+  });
+});

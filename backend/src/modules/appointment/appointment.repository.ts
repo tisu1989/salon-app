@@ -27,6 +27,7 @@ export class AppointmentRepository {
     staffId: number,
     rangeStart: Date,
     rangeEnd: Date,
+    excludeAppointmentId?: number,
   ): Promise<Appointment[]> {
     return this.db.appointment.findMany({
       where: {
@@ -34,6 +35,7 @@ export class AppointmentRepository {
         startTime: { lt: rangeEnd },
         endTime: { gt: rangeStart },
         status: { notIn: ["CANCELLED", "NO_SHOW"] },
+        ...(excludeAppointmentId !== undefined && { id: { not: excludeAppointmentId } }),
       },
     });
   }
@@ -83,5 +85,12 @@ export class AppointmentRepository {
 
   async updateStatus(appointmentId: number, status: AppointmentStatus): Promise<Appointment> {
     return this.db.appointment.update({ where: { id: appointmentId }, data: { status } });
+  }
+
+  async updateTime(appointmentId: number, startTime: Date, endTime: Date): Promise<Appointment> {
+    return this.db.appointment.update({
+      where: { id: appointmentId },
+      data: { startTime, endTime },
+    });
   }
 }
