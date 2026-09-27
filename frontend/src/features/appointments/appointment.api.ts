@@ -5,14 +5,23 @@ import type {
   AvailabilitySlot,
   CreateAppointmentRequest,
   ListAppointmentsParams,
+  RescheduleRequest,
 } from "./appointment.types";
 
 export const appointmentApi = baseApi.injectEndpoints({
   endpoints: (build) => ({
     getAvailability: build.query<AvailabilitySlot[], AvailabilityParams>({
-      query: ({ staffId, serviceId, date }) =>
-        `/appointments/availability?staffId=${staffId}&serviceId=${serviceId}&date=${date}`,
+      query: ({ staffId, serviceId, date, excludeAppointmentId }) => {
+        const excludePart =
+          excludeAppointmentId !== undefined ? `&excludeAppointmentId=${excludeAppointmentId}` : "";
+        return `/appointments/availability?staffId=${staffId}&serviceId=${serviceId}&date=${date}${excludePart}`;
+      },
       transformResponse: (res: { slots: AvailabilitySlot[] }) => res.slots,
+    }),
+    getAppointment: build.query<Appointment, number>({
+      query: (id) => `/appointments/${id}`,
+      transformResponse: (res: { appointment: Appointment }) => res.appointment,
+      providesTags: (_result, _error, id) => [{ type: "Appointment", id }],
     }),
     listAppointments: build.query<Appointment[], ListAppointmentsParams>({
       query: (params) => {
@@ -54,15 +63,25 @@ export const appointmentApi = baseApi.injectEndpoints({
       transformResponse: (res: { appointment: Appointment }) => res.appointment,
       invalidatesTags: (_result, _error, id) => [{ type: "Appointment", id }],
     }),
+    rescheduleAppointment: build.mutation<Appointment, { id: number } & RescheduleRequest>({
+      query: ({ id, ...body }) => ({ url: `/appointments/${id}/reschedule`, method: "PATCH", body }),
+      transformResponse: (res: { appointment: Appointment }) => res.appointment,
+      invalidatesTags: (_result, _error, { id }) => [
+        { type: "Appointment", id },
+        { type: "Appointment", id: "LIST" },
+      ],
+    }),
   }),
 });
 
 export const {
   useGetAvailabilityQuery,
+  useGetAppointmentQuery,
   useListAppointmentsQuery,
   useBookAppointmentMutation,
   useConfirmAppointmentMutation,
   useCancelAppointmentMutation,
   useCompleteAppointmentMutation,
   useNoShowAppointmentMutation,
+  useRescheduleAppointmentMutation,
 } = appointmentApi;

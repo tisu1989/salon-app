@@ -36,6 +36,14 @@ export interface AvailabilityParams {
   staffId: number;
   serviceId: number;
   date: string;
+  /** Set when checking availability for a reschedule, so the appointment being moved doesn't
+   *  block its own new slot (matches the backend's excludeAppointmentId query param). */
+  excludeAppointmentId?: number;
+}
+
+export interface RescheduleRequest {
+  startTime: string;
+  endTime: string;
 }
 
 /** Which action buttons a screen can offer for each status - matches the routes the backend actually exposes. */

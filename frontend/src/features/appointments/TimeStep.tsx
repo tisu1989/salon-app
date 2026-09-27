@@ -10,6 +10,7 @@ export function TimeStep({
   selectedSlot,
   onDateChange,
   onSlotSelect,
+  excludeAppointmentId,
 }: {
   staffId: number;
   serviceId: number;
@@ -17,11 +18,14 @@ export function TimeStep({
   selectedSlot: AvailabilitySlot | null;
   onDateChange: (date: string) => void;
   onSlotSelect: (slot: AvailabilitySlot) => void;
+  /** Set when rescheduling, so the appointment being moved doesn't block its own new slot. */
+  excludeAppointmentId?: number;
 }) {
   const { data: slots, isFetching, isError } = useGetAvailabilityQuery({
     staffId,
     serviceId,
     date,
+    excludeAppointmentId,
   });
 
   return (

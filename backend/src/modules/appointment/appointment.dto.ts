@@ -4,6 +4,9 @@ export const availabilityQuerySchema = z.object({
   staffId: z.coerce.number().int().positive(),
   serviceId: z.coerce.number().int().positive(),
   date: z.coerce.date(),
+  // Set when checking availability for a reschedule: the appointment being moved shouldn't
+  // count as blocking its own new slot.
+  excludeAppointmentId: z.coerce.number().int().positive().optional(),
 });
 export type AvailabilityQueryDto = z.infer<typeof availabilityQuerySchema>;
 
@@ -28,3 +31,14 @@ export const listAppointmentsQuerySchema = z
     message: "provide either customerId, or date (optionally with staffId)",
   });
 export type ListAppointmentsQueryDto = z.infer<typeof listAppointmentsQuerySchema>;
+
+export const rescheduleAppointmentSchema = z
+  .object({
+    startTime: z.coerce.date(),
+    endTime: z.coerce.date(),
+  })
+  .refine((r) => r.endTime > r.startTime, {
+    message: "endTime must be after startTime",
+    path: ["endTime"],
+  });
+export type RescheduleAppointmentDto = z.infer<typeof rescheduleAppointmentSchema>;

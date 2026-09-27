@@ -1,0 +1,114 @@
+.page {
+  max-width: 640px;
+}
+
+.back {
+  color: var(--ink-soft);
+  text-decoration: none;
+  font-size: 0.85rem;
+  display: inline-block;
+  margin-bottom: 12px;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 4px;
+  flex-wrap: wrap;
+}
+
+.subtitle {
+  color: var(--ink-soft);
+  margin: 0 0 24px;
+  font-family: var(--font-mono);
+}
+
+.section {
+  background: var(--paper-raised);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  box-shadow: var(--shadow);
+  padding: 18px 20px;
+  margin-bottom: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.sectionTitle {
+  font-size: 1.05rem;
+  margin: 0;
+}
+
+.detailRow {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.detailRow:last-child {
+  border-bottom: none;
+}
+
+.detailLabel {
+  color: var(--ink-soft);
+  font-size: 0.85rem;
+}
+
+.button {
+  min-height: 44px;
+  padding: 0 16px;
+  border-radius: 6px;
+  border: none;
+  background: var(--claret);
+  color: white;
+  font-weight: 600;
+  font-size: 0.85rem;
+  cursor: pointer;
+  align-self: flex-start;
+}
+
+.button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.secondaryButton {
+  min-height: 44px;
+  padding: 0 16px;
+  border-radius: 6px;
+  border: 1px solid var(--line);
+  background: var(--paper);
+  color: var(--ink);
+  font-size: 0.85rem;
+  cursor: pointer;
+  align-self: flex-start;
+}
+
+.dangerButton {
+  composes: secondaryButton;
+  color: var(--crit);
+  border-color: var(--crit-soft);
+}
+
+.buttonRow {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.error {
+  background: var(--crit-soft);
+  color: var(--crit);
+  border-radius: 6px;
+  padding: 10px 12px;
+  font-size: 0.85rem;
+}
+
+.empty {
+  color: var(--ink-soft);
+  font-size: 0.9rem;
+}

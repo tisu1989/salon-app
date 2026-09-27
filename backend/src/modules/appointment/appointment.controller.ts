@@ -6,6 +6,7 @@ import type {
   AvailabilityQueryDto,
   CreateAppointmentDto,
   ListAppointmentsQueryDto,
+  RescheduleAppointmentDto,
 } from "./appointment.dto.js";
 
 function parseAppointmentId(req: Request): number {
@@ -20,8 +21,14 @@ export class AppointmentController {
   constructor(private readonly appointmentService: AppointmentService) {}
 
   getAvailability = async (req: Request, res: Response): Promise<void> => {
-    const { staffId, serviceId, date } = getValidatedQuery<AvailabilityQueryDto>(req);
-    const slots = await this.appointmentService.getAvailability(staffId, serviceId, date);
+    const { staffId, serviceId, date, excludeAppointmentId } =
+      getValidatedQuery<AvailabilityQueryDto>(req);
+    const slots = await this.appointmentService.getAvailability(
+      staffId,
+      serviceId,
+      date,
+      excludeAppointmentId,
+    );
     res.status(200).json({ slots });
   };
 
@@ -48,6 +55,21 @@ export class AppointmentController {
         : await this.appointmentService.listForDay(date!, staffId);
 
     res.status(200).json({ appointments });
+  };
+
+  getById = async (req: Request, res: Response): Promise<void> => {
+    const appointment = await this.appointmentService.getById(parseAppointmentId(req));
+    res.status(200).json({ appointment });
+  };
+
+  reschedule = async (req: Request, res: Response): Promise<void> => {
+    const { startTime, endTime } = req.body as RescheduleAppointmentDto;
+    const appointment = await this.appointmentService.reschedule(
+      parseAppointmentId(req),
+      startTime,
+      endTime,
+    );
+    res.status(200).json({ appointment });
   };
 
   confirm = async (req: Request, res: Response): Promise<void> => {

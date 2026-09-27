@@ -7,6 +7,7 @@ import {
   availabilityQuerySchema,
   createAppointmentSchema,
   listAppointmentsQuerySchema,
+  rescheduleAppointmentSchema,
 } from "./appointment.dto.js";
 
 export function createAppointmentRouter(controller: AppointmentController): Router {
@@ -25,6 +26,13 @@ export function createAppointmentRouter(controller: AppointmentController): Rout
 
   router.post("/", validateBody(createAppointmentSchema), asyncHandler(controller.book));
 
+  router.get("/:id", asyncHandler(controller.getById));
+
+  router.patch(
+    "/:id/reschedule",
+    validateBody(rescheduleAppointmentSchema),
+    asyncHandler(controller.reschedule),
+  );
   router.patch("/:id/confirm", asyncHandler(controller.confirm));
   router.patch("/:id/cancel", asyncHandler(controller.cancel));
   router.patch("/:id/complete", asyncHandler(controller.complete));

@@ -20,6 +20,9 @@ const ALLOWED_TRANSITIONS: Record<AppointmentStatus, AppointmentStatus[]> = {
   NO_SHOW: [],
 };
 
+/** Only a still-pending appointment can be moved - nothing to move once it's cancelled/finished. */
+const RESCHEDULABLE_STATUSES: AppointmentStatus[] = ["BOOKED", "CONFIRMED"];
+
 export class AppointmentService {
   constructor(
     private readonly appointmentRepo: AppointmentRepository,
@@ -33,7 +36,12 @@ export class AppointmentService {
    * This is the function both the manual-booking UI and the WhatsApp bot call -
    * one source of truth for availability everywhere in the app.
    */
-  async getAvailability(staffId: number, serviceId: number, date: Date): Promise<TimeRange[]> {
+  async getAvailability(
+    staffId: number,
+    serviceId: number,
+    date: Date,
+    excludeAppointmentId?: number,
+  ): Promise<TimeRange[]> {
     const service = await this.serviceRepo.findById(serviceId);
     if (!service) {
       throw new AppError("SERVICE_NOT_FOUND", `Service ${serviceId} does not exist`, 404);
@@ -47,7 +55,12 @@ export class AppointmentService {
     const [workingHours, timeOff, appointments] = await Promise.all([
       this.staffRepo.getWorkingHours(staffId),
       this.staffRepo.getTimeOffInRange(staffId, dayStart, dayEnd),
-      this.appointmentRepo.findActiveByStaffAndDateRange(staffId, dayStart, dayEnd),
+      this.appointmentRepo.findActiveByStaffAndDateRange(
+        staffId,
+        dayStart,
+        dayEnd,
+        excludeAppointmentId,
+      ),
     ]);
 
     return getAvailableSlots({
@@ -110,6 +123,57 @@ export class AppointmentService {
   /** A customer's full booking history, most recent first. */
   async listForCustomer(customerId: number): Promise<Appointment[]> {
     return this.appointmentRepo.findByCustomerId(customerId);
+  }
+
+  /** A single appointment, for the detail screen - 404s rather than returning null. */
+  async getById(appointmentId: number): Promise<Appointment> {
+    const appointment = await this.appointmentRepo.findById(appointmentId);
+    if (!appointment) {
+      throw new AppError(
+        "APPOINTMENT_NOT_FOUND",
+        `Appointment ${appointmentId} does not exist`,
+        404,
+      );
+    }
+    return appointment;
+  }
+
+  /**
+   * Moves an appointment to a new time - same staff and service, re-validated against
+   * availability exactly like a fresh booking, except the appointment's own current slot
+   * doesn't count as "taken" (excludeAppointmentId). Cancelled/completed/no-show appointments
+   * can't be moved - there's nothing left to move.
+   */
+  async reschedule(appointmentId: number, startTime: Date, endTime: Date): Promise<Appointment> {
+    const appointment = await this.getById(appointmentId);
+
+    if (RESCHEDULABLE_STATUSES.includes(appointment.status) === false) {
+      throw new AppError(
+        "INVALID_STATUS_TRANSITION",
+        `Cannot reschedule a ${appointment.status} appointment.`,
+        409,
+      );
+    }
+
+    const freeSlots = await this.getAvailability(
+      appointment.staffId,
+      appointment.serviceId,
+      startTime,
+      appointment.id,
+    );
+    const isStillFree = freeSlots.some(
+      (slot) =>
+        slot.start.getTime() === startTime.getTime() && slot.end.getTime() === endTime.getTime(),
+    );
+    if (!isStillFree) {
+      throw new AppError(
+        "SLOT_UNAVAILABLE",
+        "This time slot is no longer available - please pick another.",
+        409,
+      );
+    }
+
+    return this.appointmentRepo.updateTime(appointmentId, startTime, endTime);
   }
 
   /** Confirms a booked appointment - the customer has verified they're coming. */
