@@ -30,6 +30,8 @@ export interface GetAvailableSlotsInput {
   serviceDurationMinutes: number;
   /** Granularity to step through the day when looking for a free start time. Default 15. */
   slotIntervalMinutes?: number;
+  /** Defaults to the real current time - overridable so tests don't depend on the clock. */
+  now?: Date;
 }
 
 const DEFAULT_SLOT_INTERVAL_MINUTES = 15;
@@ -47,6 +49,7 @@ export function getAvailableSlots(input: GetAvailableSlotsInput): TimeRange[] {
     existingAppointments,
     serviceDurationMinutes,
     slotIntervalMinutes = DEFAULT_SLOT_INTERVAL_MINUTES,
+    now = new Date(),
   } = input;
 
   const dayOfWeek = date.getDay();
@@ -72,12 +75,19 @@ export function getAvailableSlots(input: GetAvailableSlotsInput): TimeRange[] {
   const slots: TimeRange[] = [];
   const stepMs = slotIntervalMinutes * 60_000;
   const durationMs = serviceDurationMinutes * 60_000;
+  const nowMs = now.getTime();
 
   for (
     let candidateStart = dayStart.getTime();
     candidateStart + durationMs <= dayEnd.getTime();
     candidateStart += stepMs
   ) {
+    // A slot that's already in the past (only ever matters when `date` is today - any
+    // future date's slots are trivially all still ahead of `now`) can't be booked.
+    if (candidateStart < nowMs) {
+      continue;
+    }
+
     const candidateEnd = candidateStart + durationMs;
 
     const isBlocked = busy.some((range) =>
