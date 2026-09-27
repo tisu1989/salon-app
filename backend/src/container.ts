@@ -27,6 +27,9 @@ import { WhatsappClient } from "./modules/whatsapp/whatsapp.client.js";
 import { WhatsappService } from "./modules/whatsapp/whatsapp.service.js";
 import { WhatsappController } from "./modules/whatsapp/whatsapp.controller.js";
 
+import { AnalyticsService } from "./modules/analytics/analytics.service.js";
+import { AnalyticsController } from "./modules/analytics/analytics.controller.js";
+
 import { NotificationRepository } from "./modules/notification/notification.repository.js";
 import { NotificationService } from "./modules/notification/notification.service.js";
 import { NotificationController } from "./modules/notification/notification.controller.js";
@@ -66,6 +69,7 @@ export const controllers = {
   customer: new CustomerController(customerRepo),
   whatsapp: new WhatsappController(whatsappService),
   notification: new NotificationController(notificationService),
+  analytics: new AnalyticsController(new AnalyticsService(appointmentRepo)),
 };
 
 // Not part of the HTTP surface - server.ts hands this to startNotificationWorker.
