@@ -8,6 +8,7 @@ import { CustomerDirectoryPage } from "../features/customers/CustomerDirectoryPa
 import { CustomerProfilePage } from "../features/customers/CustomerProfilePage";
 import { StaffDirectoryPage } from "../features/staff/StaffDirectoryPage";
 import { StaffDetailPage } from "../features/staff/StaffDetailPage";
+import { StaffAvailabilityPage } from "../features/staff/StaffAvailabilityPage";
 import { ServiceMenuPage } from "../features/services/ServiceMenuPage";
 import { NotificationLogPage } from "../features/notifications/NotificationLogPage";
 import { DashboardPage } from "../features/analytics/DashboardPage";
@@ -31,6 +32,7 @@ export const router = createBrowserRouter([
           { path: "/manage", element: <ManagePage /> },
           { path: "/dashboard", element: <DashboardPage /> },
           { path: "/staff", element: <StaffDirectoryPage /> },
+          { path: "/staff-availability", element: <StaffAvailabilityPage /> },
           { path: "/staff/:id", element: <StaffDetailPage /> },
           { path: "/services", element: <ServiceMenuPage /> },
           { path: "/notifications", element: <NotificationLogPage /> },
