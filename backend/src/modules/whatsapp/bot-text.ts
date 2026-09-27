@@ -69,6 +69,41 @@ export function formatTime24h(date: Date): string {
   return `${hours}:${minutes}`;
 }
 
+const WEEKDAY_NAMES = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+const MONTH_NAMES = [
+  "Jan",
+  "Feb",
+  "Mar",
+  "Apr",
+  "May",
+  "Jun",
+  "Jul",
+  "Aug",
+  "Sep",
+  "Oct",
+  "Nov",
+  "Dec",
+];
+
+/**
+ * Formats a Date as "Sat, 28 Sep" for the WhatsApp confirmation card. Hand-rolled (not
+ * toLocaleDateString) so it's deterministic regardless of the server's ICU data, matching
+ * formatTime24h's approach.
+ */
+export function formatDateHuman(date: Date): string {
+  return `${WEEKDAY_NAMES[date.getDay()]}, ${date.getDate()} ${MONTH_NAMES[date.getMonth()]}`;
+}
+
+/**
+ * WhatsApp list rows and buttons have hard length limits (row titles: 24 chars, row
+ * descriptions: 72, button titles: 20) - the whole outgoing message is rejected if any one
+ * of them is exceeded. Truncates defensively so a long service/staff name can never break
+ * the bot for everyone.
+ */
+export function truncateForWhatsapp(text: string, maxLength: number): string {
+  return text.length <= maxLength ? text : `${text.slice(0, maxLength - 1)}…`;
+}
+
 function startOfDay(date: Date): Date {
   const result = new Date(date);
   result.setHours(0, 0, 0, 0);

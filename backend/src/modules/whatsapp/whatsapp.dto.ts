@@ -14,6 +14,15 @@ const incomingMessageSchema = z
     from: z.string(),
     type: z.string(),
     text: z.object({ body: z.string() }).optional(),
+    // Present when the customer tapped a list row or a reply button instead of typing.
+    interactive: z
+      .object({
+        type: z.string(),
+        button_reply: z.object({ id: z.string() }).passthrough().optional(),
+        list_reply: z.object({ id: z.string() }).passthrough().optional(),
+      })
+      .passthrough()
+      .optional(),
   })
   .passthrough();
 
@@ -39,16 +48,25 @@ export const webhookPayloadSchema = z
   .passthrough();
 export type WebhookPayloadDto = z.infer<typeof webhookPayloadSchema>;
 
-export interface IncomingTextMessage {
+export interface IncomingMessage {
   from: string;
   /** The sender's WhatsApp display name, if Meta included contact info for this message. */
   contactName: string | undefined;
+  /**
+   * Either what the customer typed, or - for a tapped list row/button - the id we chose when
+   * we sent that row/button (see whatsapp.client.ts). The bot's conversation logic treats both
+   * the same way, so it doesn't need to know which one happened.
+   */
   body: string;
 }
 
-/** Flattens the deeply-nested webhook payload down to the text messages we can actually act on. */
-export function extractIncomingTextMessages(payload: WebhookPayloadDto): IncomingTextMessage[] {
-  const messages: IncomingTextMessage[] = [];
+/**
+ * Flattens the deeply-nested webhook payload down to the messages we can actually act on:
+ * typed text, and taps on a list row or reply button. Anything else (images, reactions,
+ * status updates) is ignored.
+ */
+export function extractIncomingMessages(payload: WebhookPayloadDto): IncomingMessage[] {
+  const messages: IncomingMessage[] = [];
 
   for (const entry of payload.entry) {
     for (const change of entry.changes) {
@@ -59,6 +77,11 @@ export function extractIncomingTextMessages(payload: WebhookPayloadDto): Incomin
       for (const message of change.value.messages ?? []) {
         if (message.type === "text" && message.text) {
           messages.push({ from: message.from, contactName, body: message.text.body });
+        } else if (message.type === "interactive" && message.interactive) {
+          const body = message.interactive.button_reply?.id ?? message.interactive.list_reply?.id;
+          if (body) {
+            messages.push({ from: message.from, contactName, body });
+          }
         }
       }
     }

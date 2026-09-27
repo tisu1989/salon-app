@@ -1,9 +1,11 @@
 import { describe, expect, it } from "vitest";
 import {
+  formatDateHuman,
   formatTime24h,
   isResetCommand,
   parseRequestedDate,
   resolveNumberedSelection,
+  truncateForWhatsapp,
 } from "./bot-text.js";
 
 describe("isResetCommand", () => {
@@ -71,5 +73,30 @@ describe("formatTime24h", () => {
   it("formats afternoon times in 24h form", () => {
     const d = new Date(2026, 0, 1, 17, 30);
     expect(formatTime24h(d)).toBe("17:30");
+  });
+});
+
+describe("formatDateHuman", () => {
+  it('formats a date as "Weekday, D Mon"', () => {
+    expect(formatDateHuman(new Date(2026, 8, 27))).toBe("Sun, 27 Sep");
+    expect(formatDateHuman(new Date(2026, 0, 1))).toBe("Thu, 1 Jan");
+  });
+});
+
+describe("truncateForWhatsapp", () => {
+  it("leaves short text unchanged", () => {
+    expect(truncateForWhatsapp("Haircut", 24)).toBe("Haircut");
+  });
+
+  it("truncates text over the limit and adds an ellipsis", () => {
+    const longName = "Deluxe Full-Body Aromatherapy Massage Package";
+    const result = truncateForWhatsapp(longName, 24);
+    expect(result.length).toBe(24);
+    expect(result.endsWith("…")).toBe(true);
+  });
+
+  it("treats text exactly at the limit as unchanged", () => {
+    const exact = "12345678901234567890"; // 20 chars
+    expect(truncateForWhatsapp(exact, 20)).toBe(exact);
   });
 });

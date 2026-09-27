@@ -23,6 +23,8 @@ const envSchema = z
     WHATSAPP_APP_SECRET: z.string().optional(),
     WHATSAPP_ACCESS_TOKEN: z.string().optional(),
     WHATSAPP_PHONE_NUMBER_ID: z.string().optional(),
+    // Used in the WhatsApp bot's greeting - "Welcome to <SALON_NAME>!"
+    SALON_NAME: z.string().default("the salon"),
   })
   .superRefine((values, ctx) => {
     // Dev/test keep short placeholder secrets working; production must not run on a guessable HMAC key.
