@@ -10,6 +10,7 @@ import { StaffDirectoryPage } from "../features/staff/StaffDirectoryPage";
 import { StaffDetailPage } from "../features/staff/StaffDetailPage";
 import { ServiceMenuPage } from "../features/services/ServiceMenuPage";
 import { NotificationLogPage } from "../features/notifications/NotificationLogPage";
+import { DashboardPage } from "../features/analytics/DashboardPage";
 import { AppShell } from "./AppShell";
 import { ManagePage } from "./ManagePage";
 import { ProtectedRoute } from "./ProtectedRoute";
@@ -28,6 +29,7 @@ export const router = createBrowserRouter([
           { path: "/customers", element: <CustomerDirectoryPage /> },
           { path: "/customers/:id", element: <CustomerProfilePage /> },
           { path: "/manage", element: <ManagePage /> },
+          { path: "/dashboard", element: <DashboardPage /> },
           { path: "/staff", element: <StaffDirectoryPage /> },
           { path: "/staff/:id", element: <StaffDetailPage /> },
           { path: "/services", element: <ServiceMenuPage /> },

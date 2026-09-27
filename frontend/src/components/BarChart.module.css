@@ -1,0 +1,43 @@
+.chart {
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+
+.gridLine {
+  stroke: var(--line);
+  stroke-width: 1;
+}
+
+.axisLabel {
+  fill: var(--ink-soft);
+  font-family: var(--font-mono);
+  font-size: 10px;
+}
+
+.bar {
+  fill: var(--claret);
+}
+
+.barHighlight {
+  fill: var(--ochre);
+}
+
+.barLabel {
+  fill: var(--ink);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+}
+
+.xLabel {
+  fill: var(--ink-soft);
+  font-size: 10px;
+}
+
+.empty {
+  color: var(--ink-soft);
+  font-size: 0.9rem;
+  padding: 24px 0;
+  text-align: center;
+}

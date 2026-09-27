@@ -1,0 +1,94 @@
+.header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.header h1 {
+  flex: 1 0 auto;
+}
+
+.control {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 0.8rem;
+  color: var(--ink-soft);
+}
+
+.control select {
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 8px 10px;
+  background: var(--paper-raised);
+  color: var(--ink);
+  min-height: 44px;
+}
+
+.tileGrid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.tile {
+  background: var(--paper-raised);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  box-shadow: var(--shadow);
+  padding: 16px 18px;
+}
+
+.tileLabel {
+  color: var(--ink-soft);
+  font-size: 0.8rem;
+}
+
+.tileValue {
+  font-family: var(--font-display);
+  font-size: 2rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  margin-top: 4px;
+}
+
+.tileValue.ok {
+  color: var(--ok);
+}
+
+.tileValue.warn {
+  color: var(--warn);
+}
+
+.tileValue.crit {
+  color: var(--crit);
+}
+
+.section {
+  background: var(--paper-raised);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  box-shadow: var(--shadow);
+  padding: 18px 20px;
+  margin-bottom: 16px;
+}
+
+.sectionTitle {
+  font-size: 1.05rem;
+  margin: 0 0 14px;
+}
+
+.empty {
+  color: var(--ink-soft);
+  padding: 24px 0;
+  text-align: center;
+}
+
+@media (min-width: 640px) {
+  .tileGrid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}

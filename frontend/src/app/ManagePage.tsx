@@ -2,6 +2,7 @@ import { Link } from "react-router-dom";
 import styles from "./ManagePage.module.css";
 
 const CARDS = [
+  { to: "/dashboard", title: "Dashboard", meta: "Bookings, no-shows, busiest hours" },
   { to: "/staff", title: "Staff", meta: "Directory, add/edit, schedules" },
   { to: "/services", title: "Services", meta: "Menu, add/edit" },
   { to: "/notifications", title: "Notification log", meta: "Delivery status, manual retry" },
