@@ -5,7 +5,7 @@ import type { Redis } from "ioredis";
  * order; "cancel"/"restart" (handled by the caller) drops back to IDLE at any point.
  */
 export type ConversationStep =
-  "AWAITING_SERVICE" | "AWAITING_STAFF" | "AWAITING_DATE" | "AWAITING_SLOT";
+  "AWAITING_SERVICE" | "AWAITING_STAFF" | "AWAITING_DATE" | "AWAITING_SLOT" | "AWAITING_CONFIRM";
 
 export interface SlotOption {
   start: string; // ISO string - Redis only stores JSON-serializable data
@@ -21,6 +21,8 @@ export interface ConversationState {
   presentedServiceIds?: number[];
   presentedStaffIds?: number[];
   presentedSlots?: SlotOption[];
+  /** The slot picked in AWAITING_SLOT, held here while the customer confirms or cancels. */
+  pendingSlot?: SlotOption;
 }
 
 const SESSION_TTL_SECONDS = 15 * 60; // conversation expires after 15 minutes of inactivity

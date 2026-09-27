@@ -1,7 +1,7 @@
 import type { Request, Response } from "express";
 import { env } from "../../config/env.js";
 import {
-  extractIncomingTextMessages,
+  extractIncomingMessages,
   webhookPayloadSchema,
   webhookVerifyQuerySchema,
 } from "./whatsapp.dto.js";
@@ -49,7 +49,7 @@ export class WhatsappController {
     // shouldn't block the webhook response or risk a duplicate-delivery retry.
     res.status(200).send();
 
-    for (const message of extractIncomingTextMessages(parsed.data)) {
+    for (const message of extractIncomingMessages(parsed.data)) {
       this.whatsappService.handleIncomingMessage(message).catch((err: unknown) => {
         req.log?.error({ err, from: message.from }, "Failed to handle WhatsApp message");
       });
