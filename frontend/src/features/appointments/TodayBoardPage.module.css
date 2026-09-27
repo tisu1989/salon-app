@@ -1,13 +1,19 @@
 .header {
   display: flex;
   flex-wrap: wrap;
-  align-items: center;
+  /* flex-end, not center: the Date/Staff controls are a label stacked over an input (taller
+     than the plain button), so centering shoves the button up out of line with the input
+     boxes. Aligning to the bottom keeps the button's bottom edge level with them instead. */
+  align-items: flex-end;
   gap: 12px;
   margin-bottom: 20px;
 }
 
 .header h1 {
   flex: 1 0 auto;
+  /* Stay vertically centered on its own, rather than following the row's flex-end and
+     sitting low next to the (much taller) label+input controls. */
+  align-self: center;
 }
 
 .newBookingLink {
