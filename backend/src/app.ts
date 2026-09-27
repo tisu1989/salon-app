@@ -18,6 +18,7 @@ import { createServiceRouter } from "./modules/service/service.router.js";
 import { createCustomerRouter } from "./modules/customer/customer.router.js";
 import { createWhatsappRouter } from "./modules/whatsapp/whatsapp.router.js";
 import { createNotificationRouter } from "./modules/notification/notification.router.js";
+import { createAnalyticsRouter } from "./modules/analytics/analytics.router.js";
 
 export function createApp(): Express {
   const app = express();
@@ -56,6 +57,7 @@ export function createApp(): Express {
   app.use("/api/v1/services", createServiceRouter(controllers.service));
   app.use("/api/v1/customers", createCustomerRouter(controllers.customer));
   app.use("/api/v1/notifications", createNotificationRouter(controllers.notification));
+  app.use("/api/v1/analytics", createAnalyticsRouter(controllers.analytics));
   app.use("/webhook", webhookRateLimit, createWhatsappRouter(controllers.whatsapp));
 
   // Must be registered last
