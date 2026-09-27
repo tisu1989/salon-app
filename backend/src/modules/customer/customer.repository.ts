@@ -1,4 +1,5 @@
 import { Prisma, type Customer, type PrismaClient } from "@prisma/client";
+import { normalizePhone } from "./phone.js";
 
 export interface CreateCustomerInput {
   name: string;
@@ -13,14 +14,14 @@ export class CustomerRepository {
   }
 
   async findByPhone(phone: string): Promise<Customer | null> {
-    return this.db.customer.findUnique({ where: { phone } });
+    return this.db.customer.findUnique({ where: { phone: normalizePhone(phone) } });
   }
 
   /** Matches on name (contains, case-insensitive) or phone (exact) - the two things a staff member searches by. */
   async search(query: string): Promise<Customer[]> {
     return this.db.customer.findMany({
       where: {
-        OR: [{ name: { contains: query } }, { phone: query }],
+        OR: [{ name: { contains: query } }, { phone: normalizePhone(query) }],
       },
       orderBy: { name: "asc" },
       take: 20,
@@ -28,7 +29,9 @@ export class CustomerRepository {
   }
 
   async create(input: CreateCustomerInput): Promise<Customer> {
-    return this.db.customer.create({ data: input });
+    return this.db.customer.create({
+      data: { ...input, phone: normalizePhone(input.phone) },
+    });
   }
 
   /**
