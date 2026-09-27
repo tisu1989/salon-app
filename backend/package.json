@@ -15,6 +15,7 @@
     "test": "vitest run",
     "create-admin": "tsx prisma/create-admin.ts",
     "reset-password": "tsx prisma/reset-password.ts",
+    "merge-duplicate-customers": "tsx prisma/merge-duplicate-customers.ts",
     "test:watch": "vitest",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
