@@ -3,6 +3,7 @@ import { LoginPage } from "../features/auth/LoginPage";
 import { AccountPage } from "../features/auth/AccountPage";
 import { TodayBoardPage } from "../features/appointments/TodayBoardPage";
 import { NewBookingWizard } from "../features/appointments/NewBookingWizard";
+import { AppointmentDetailPage } from "../features/appointments/AppointmentDetailPage";
 import { CustomerDirectoryPage } from "../features/customers/CustomerDirectoryPage";
 import { CustomerProfilePage } from "../features/customers/CustomerProfilePage";
 import { StaffDirectoryPage } from "../features/staff/StaffDirectoryPage";
@@ -23,6 +24,7 @@ export const router = createBrowserRouter([
         children: [
           { path: "/", element: <TodayBoardPage /> },
           { path: "/appointments/new", element: <NewBookingWizard /> },
+          { path: "/appointments/:id", element: <AppointmentDetailPage /> },
           { path: "/customers", element: <CustomerDirectoryPage /> },
           { path: "/customers/:id", element: <CustomerProfilePage /> },
           { path: "/manage", element: <ManagePage /> },

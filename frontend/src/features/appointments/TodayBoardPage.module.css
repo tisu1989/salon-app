@@ -87,6 +87,8 @@
 }
 
 .actionButton {
+  display: inline-flex;
+  align-items: center;
   border: 1px solid var(--line);
   border-radius: 6px;
   background: var(--paper);
@@ -95,6 +97,7 @@
   min-height: 44px;
   cursor: pointer;
   font-size: 0.85rem;
+  text-decoration: none;
 }
 
 .actionButton:disabled {
