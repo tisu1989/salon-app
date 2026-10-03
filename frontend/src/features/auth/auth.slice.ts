@@ -45,8 +45,20 @@ const authSlice = createSlice({
       state.isRestoring = false;
       localStorage.setItem(REFRESH_TOKEN_STORAGE_KEY, action.payload.refreshToken);
     },
-    accessTokenRefreshed: (state, action: PayloadAction<{ accessToken: string }>) => {
+    /**
+     * The backend rotates the refresh token every time it's redeemed (the old one is
+     * destroyed immediately, for security - see auth.service.ts's refresh()) and always
+     * returns a fresh pair together, so this must save both or the saved refresh token
+     * goes stale the moment this fires - the next page load would then try to redeem an
+     * already-destroyed token and log the user out.
+     */
+    accessTokenRefreshed: (
+      state,
+      action: PayloadAction<{ accessToken: string; refreshToken: string }>,
+    ) => {
       state.accessToken = action.payload.accessToken;
+      state.refreshToken = action.payload.refreshToken;
+      localStorage.setItem(REFRESH_TOKEN_STORAGE_KEY, action.payload.refreshToken);
     },
     /** The profile fetch (GET /auth/me) after a boot-time session restore completed. */
     profileLoaded: (state, action: PayloadAction<{ staff: AuthenticatedStaff }>) => {
