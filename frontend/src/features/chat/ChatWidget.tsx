@@ -39,6 +39,15 @@ export function ChatWidget() {
   return (
     <div className={styles.wrapper}>
       {isOpen && (
+        <button
+          type="button"
+          className={styles.backdrop}
+          onClick={() => setIsOpen(false)}
+          aria-label="Close assistant chat"
+        />
+      )}
+
+      {isOpen && (
         <div className={styles.window}>
           <div className={styles.header}>
             <span>Assistant</span>

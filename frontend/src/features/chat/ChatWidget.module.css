@@ -16,7 +16,23 @@
   }
 }
 
+/* Dims the rest of the page while the chat is open, so the window clearly reads as
+   floating above the page instead of just colliding with whatever's underneath it -
+   tapping anywhere outside the chat closes it, same as any modal/popup. */
+.backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 39;
+  border: none;
+  padding: 0;
+  background: rgba(0, 0, 0, 0.25);
+  cursor: default;
+}
+
 .fab {
+  /* Same reason as .window - stays above .backdrop so it doesn't vanish while open. */
+  position: relative;
+  z-index: 40;
   width: 52px;
   height: 52px;
   border-radius: 999px;
@@ -29,6 +45,11 @@
 }
 
 .window {
+  /* Needs its own stacking position above .backdrop (z-index 39) - without this, the
+     backdrop (a positioned element) would paint over this otherwise-unpositioned panel
+     regardless of where it sits in the markup. */
+  position: relative;
+  z-index: 40;
   width: min(320px, calc(100vw - 32px));
   height: min(440px, 60vh);
   display: flex;
