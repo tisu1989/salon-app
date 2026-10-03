@@ -34,6 +34,10 @@ import { NotificationRepository } from "./modules/notification/notification.repo
 import { NotificationService } from "./modules/notification/notification.service.js";
 import { NotificationController } from "./modules/notification/notification.controller.js";
 
+import { GroqClient } from "./modules/chat/groq.client.js";
+import { ChatService } from "./modules/chat/chat.service.js";
+import { ChatController } from "./modules/chat/chat.controller.js";
+
 const staffRepo = new StaffRepository(prisma);
 const serviceRepo = new ServiceRepository(prisma);
 const appointmentRepo = new AppointmentRepository(prisma);
@@ -60,6 +64,16 @@ const whatsappService = new WhatsappService(
 );
 
 const notificationService = new NotificationService(notificationRepo, whatsappClient);
+const analyticsService = new AnalyticsService(appointmentRepo);
+
+const chatService = new ChatService(
+  new GroqClient(),
+  appointmentService,
+  staffRepo,
+  customerRepo,
+  serviceRepo,
+  analyticsService,
+);
 
 export const controllers = {
   auth: new AuthController(authService),
@@ -69,7 +83,8 @@ export const controllers = {
   customer: new CustomerController(customerRepo),
   whatsapp: new WhatsappController(whatsappService),
   notification: new NotificationController(notificationService),
-  analytics: new AnalyticsController(new AnalyticsService(appointmentRepo)),
+  analytics: new AnalyticsController(analyticsService),
+  chat: new ChatController(chatService),
 };
 
 // Not part of the HTTP surface - server.ts hands this to startNotificationWorker.

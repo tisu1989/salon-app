@@ -1,5 +1,6 @@
 import { NavLink, Outlet } from "react-router-dom";
 import { useAppSelector } from "./hooks";
+import { ChatWidget } from "../features/chat/ChatWidget";
 import styles from "./AppShell.module.css";
 
 /**
@@ -40,6 +41,8 @@ export function AppShell() {
           </NavLink>
         ))}
       </nav>
+
+      <ChatWidget />
     </div>
   );
 }

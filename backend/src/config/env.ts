@@ -25,6 +25,9 @@ const envSchema = z
     WHATSAPP_PHONE_NUMBER_ID: z.string().optional(),
     // Used in the WhatsApp bot's greeting - "Welcome to <SALON_NAME>!"
     SALON_NAME: z.string().default("the salon"),
+    // Powers the staff/admin dashboard chatbot (console.groq.com). Optional so the rest of
+    // the app runs fine without it - the chat endpoint just errors until it's set.
+    GROQ_API_KEY: z.string().optional(),
   })
   .superRefine((values, ctx) => {
     // Dev/test keep short placeholder secrets working; production must not run on a guessable HMAC key.
