@@ -20,8 +20,8 @@ export function SessionBoot({ children }: { children: ReactNode }) {
     if (!refreshToken) return;
     restoreSession({ refreshToken })
       .unwrap()
-      .then(async ({ accessToken }) => {
-        dispatch(accessTokenRefreshed({ accessToken }));
+      .then(async ({ accessToken, refreshToken: newRefreshToken }) => {
+        dispatch(accessTokenRefreshed({ accessToken, refreshToken: newRefreshToken }));
         const staff = await getMe().unwrap();
         dispatch(profileLoaded({ staff }));
       })
