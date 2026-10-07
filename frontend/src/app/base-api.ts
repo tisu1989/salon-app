@@ -45,8 +45,8 @@ const baseQueryWithReauth: BaseQueryFn<string | FetchArgs, unknown, FetchBaseQue
     );
 
     if (refreshResult.data) {
-      const { accessToken } = refreshResult.data as LoginResponse;
-      api.dispatch(accessTokenRefreshed({ accessToken }));
+      const { accessToken, refreshToken: newRefreshToken } = refreshResult.data as LoginResponse;
+      api.dispatch(accessTokenRefreshed({ accessToken, refreshToken: newRefreshToken }));
       result = await rawBaseQuery(args, api, extraOptions);
     } else {
       api.dispatch(loggedOut());

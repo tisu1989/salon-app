@@ -27,18 +27,28 @@ describe("auth slice", () => {
     expect(JSON.stringify({ ...localStorage })).not.toContain("access-1");
   });
 
-  it("a silent token refresh swaps the access token without touching who is logged in", () => {
-    const state = authReducer(signedIn, accessTokenRefreshed({ accessToken: "access-2" }));
+  it("a silent token refresh swaps both tokens (the backend rotates the refresh token on every use) without touching who is logged in", () => {
+    const state = authReducer(
+      signedIn,
+      accessTokenRefreshed({ accessToken: "access-2", refreshToken: "refresh-2" }),
+    );
 
     expect(state.accessToken).toBe("access-2");
     expect(state.staff).toEqual(staff);
-    expect(state.refreshToken).toBe("refresh-1");
+    // The old refresh token is already dead server-side the moment it's redeemed - the new
+    // one must be saved, or the next page load tries to redeem a destroyed token and logs
+    // the user out.
+    expect(state.refreshToken).toBe("refresh-2");
+    expect(localStorage.getItem("salon.refreshToken")).toBe("refresh-2");
   });
 
   it("finishes restoring only once the profile has loaded", () => {
     const restoring = { ...signedOut, refreshToken: "refresh-1", isRestoring: true };
 
-    const afterRefresh = authReducer(restoring, accessTokenRefreshed({ accessToken: "a" }));
+    const afterRefresh = authReducer(
+      restoring,
+      accessTokenRefreshed({ accessToken: "a", refreshToken: "refresh-2" }),
+    );
     expect(afterRefresh.isRestoring).toBe(true); // still waiting for /auth/me
 
     const afterProfile = authReducer(afterRefresh, profileLoaded({ staff }));
