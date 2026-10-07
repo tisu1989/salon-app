@@ -79,5 +79,10 @@
 
   .main {
     padding: 32px 40px 40px;
+    /* Without a cap, content stretches edge-to-edge on a wide monitor - a card grid or a
+       single list row 1800px wide looks sparse and unfinished rather than "using the
+       screen". 1100px keeps it at a comfortable, denser width; left-aligned against the
+       sidebar (not centered) so it doesn't look like it's floating detached from the nav. */
+    max-width: 1100px;
   }
 }
