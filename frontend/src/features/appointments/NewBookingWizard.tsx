@@ -7,6 +7,7 @@ import { TimeStep } from "./TimeStep";
 import { ConfirmStep } from "./ConfirmStep";
 import { WIZARD_STEPS, STEP_LABELS, furthestReachableIndex, type BookingDraft } from "./booking-draft";
 import { useBookAppointmentMutation } from "./appointment.api";
+import { enqueueBooking, isNetworkError } from "./bookingQueue";
 import { useListServicesQuery } from "../services/service.api";
 import { useListStaffQuery } from "../staff/staff.api";
 import { toDateInputValue } from "../../lib/date";
@@ -49,18 +50,42 @@ export function NewBookingWizard() {
       return;
     }
     if (!draft.customer || !draft.serviceId || !draft.staffId || !draft.slot) return;
+
+    const request = {
+      customerId: draft.customer.id,
+      staffId: draft.staffId,
+      serviceId: draft.serviceId,
+      startTime: draft.slot.start,
+      endTime: draft.slot.end,
+    };
+
+    const queueAndLeave = () => {
+      enqueueBooking({
+        request,
+        customerName: draft.customer!.name,
+        serviceName: services?.find((s) => s.id === draft.serviceId)?.name ?? "Service",
+        staffName: staff?.find((s) => s.id === draft.staffId)?.name ?? "Staff",
+      });
+      navigate("/", { replace: true });
+    };
+
+    // Already offline - no point attempting the request at all, queue it right away.
+    if (!navigator.onLine) {
+      queueAndLeave();
+      return;
+    }
+
     try {
-      const appointment = await bookAppointment({
-        customerId: draft.customer.id,
-        staffId: draft.staffId,
-        serviceId: draft.serviceId,
-        startTime: draft.slot.start,
-        endTime: draft.slot.end,
-      }).unwrap();
+      const appointment = await bookAppointment(request).unwrap();
       navigate(`/?date=${toDateInputValue(new Date(appointment.startTime))}`, { replace: true });
-    } catch {
-      // Nothing to do here: the mutation state (bookError) already drives the message on screen.
-      // Catching stops the rejection escaping the click handler as an uncaught error.
+    } catch (err) {
+      if (isNetworkError(err)) {
+        queueAndLeave();
+        return;
+      }
+      // A real rejection (e.g. the slot was just taken) - nothing to do here, the
+      // mutation state (bookError) already drives the message on screen. Catching
+      // stops it escaping the click handler as an uncaught error.
     }
   };
 

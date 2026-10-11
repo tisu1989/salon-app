@@ -2,10 +2,11 @@ import { screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { http, HttpResponse } from "msw";
 import { Route, Routes } from "react-router-dom";
-import { describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
 import { formatTime } from "../../lib/date";
 import { API, server } from "../../test/server";
 import { renderWithProviders } from "../../test/render";
+import { getQueue } from "./bookingQueue";
 import { NewBookingWizard } from "./NewBookingWizard";
 
 const customer = { id: 7, name: "Meera Shah", phone: "+919800000007" };
@@ -41,6 +42,10 @@ function renderWizard() {
 }
 
 describe("NewBookingWizard", () => {
+  beforeEach(() => {
+    localStorage.clear();
+  });
+
   it("locks every step after the first until you've made the earlier choices", () => {
     renderWizard();
 
@@ -104,5 +109,40 @@ describe("NewBookingWizard", () => {
 
     expect(await screen.findByText(/no longer be available|may have just been taken/i)).toBeInTheDocument();
     expect(screen.queryByText("Today's Board")).not.toBeInTheDocument();
+  });
+
+  it("queues the booking and still leaves the wizard when the network is unreachable", async () => {
+    fakeBackend(() => {});
+    server.use(http.post(`${API}/appointments`, () => HttpResponse.error()));
+    const user = userEvent.setup();
+    renderWizard();
+
+    await user.type(screen.getByLabelText("Search by name or phone"), "Meera");
+    await user.click(await screen.findByRole("button", { name: /Meera Shah/ }));
+    await user.click(await screen.findByRole("button", { name: /Haircut/ }));
+    await user.click(await screen.findByRole("button", { name: /Asha Stylist/ }));
+    await user.click(await screen.findByRole("button", { name: formatTime(slots[0]!.start) }));
+    await user.click(screen.getByRole("button", { name: "Next" }));
+    await user.click(await screen.findByRole("button", { name: "Confirm booking" }));
+
+    // A network failure, unlike a real rejection, doesn't strand the staff member on the
+    // wizard - the booking is saved locally and they're taken back to the board.
+    expect(await screen.findByText("Today's Board")).toBeInTheDocument();
+
+    const queue = getQueue();
+    expect(queue).toHaveLength(1);
+    expect(queue[0]).toMatchObject({
+      customerName: "Meera Shah",
+      serviceName: "Haircut",
+      staffName: "Asha Stylist",
+      conflict: false,
+      request: {
+        customerId: 7,
+        staffId: 3,
+        serviceId: 2,
+        startTime: slots[0]!.start,
+        endTime: slots[0]!.end,
+      },
+    });
   });
 });

@@ -1,6 +1,7 @@
 import { NavLink, Outlet } from "react-router-dom";
 import { useAppSelector } from "./hooks";
 import { ChatWidget } from "../features/chat/ChatWidget";
+import { PendingBookingsIndicator } from "../features/appointments/PendingBookingsIndicator";
 import styles from "./AppShell.module.css";
 
 /**
@@ -43,6 +44,7 @@ export function AppShell() {
       </nav>
 
       <ChatWidget />
+      <PendingBookingsIndicator />
     </div>
   );
 }
