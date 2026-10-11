@@ -26,30 +26,31 @@ enum AppointmentSource {
 }
 
 model Staff {
-  id           Int       @id @default(autoincrement())
+  id           Int      @id @default(autoincrement())
   name         String
-  phone        String    @unique
-  email        String?   @unique
+  phone        String   @unique
+  email        String?  @unique
   passwordHash String
-  role         Role      @default(STAFF)
-  isActive     Boolean   @default(true)
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
+  role         Role     @default(STAFF)
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
-  workingHours  WorkingHours[]
-  timeOff       TimeOff[]
-  appointments  Appointment[]      @relation("StaffAppointments")
-  createdByMe   Appointment[]      @relation("CreatedByStaff")
+  workingHours     WorkingHours[]
+  timeOff          TimeOff[]
+  appointments     Appointment[]  @relation("StaffAppointments")
+  createdByMe      Appointment[]  @relation("CreatedByStaff")
+  exportsRequested Export[]
 
   @@map("staff")
 }
 
 model WorkingHours {
-  id        Int      @id @default(autoincrement())
+  id        Int    @id @default(autoincrement())
   staffId   Int
-  dayOfWeek Int      // 0 = Sunday ... 6 = Saturday
-  startTime String   // "09:00" - stored as string, parsed alongside date at query time
-  endTime   String   // "18:00"
+  dayOfWeek Int // 0 = Sunday ... 6 = Saturday
+  startTime String // "09:00" - stored as string, parsed alongside date at query time
+  endTime   String // "18:00"
 
   staff Staff @relation(fields: [staffId], references: [id], onDelete: Cascade)
 
@@ -106,7 +107,7 @@ model Appointment {
   endTime     DateTime
   status      AppointmentStatus @default(BOOKED)
   source      AppointmentSource
-  createdById Int?              // staff.id if booked manually; null for WhatsApp bookings
+  createdById Int? // staff.id if booked manually; null for WhatsApp bookings
   createdAt   DateTime          @default(now())
   updatedAt   DateTime          @updatedAt
 
@@ -147,6 +148,38 @@ model NotificationLog {
   appointment Appointment @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
 
   @@map("notification_logs")
+}
+
+enum ExportType {
+  APPOINTMENTS
+}
+
+enum ExportStatus {
+  PENDING
+  DONE
+  FAILED
+}
+
+model Export {
+  id            Int          @id @default(autoincrement())
+  type          ExportType
+  status        ExportStatus @default(PENDING)
+  // Export-specific inputs (e.g. which date) - kept flexible as JSON rather than one
+  // column per export type, since each type will want different parameters.
+  params        Json
+  fileName      String?
+  // The finished CSV's actual text, once DONE. Stored in the database rather than on
+  // disk - Render's free tier doesn't reliably keep files between restarts, and a
+  // salon's exports are small enough that this is simpler than adding cloud storage.
+  fileContent   String?      @db.LongText
+  error         String?
+  requestedById Int
+  createdAt     DateTime     @default(now())
+  completedAt   DateTime?
+
+  requestedBy Staff @relation(fields: [requestedById], references: [id])
+
+  @@map("exports")
 }
 
 // BotSession (WhatsApp conversation state) intentionally lives in Redis, not here -

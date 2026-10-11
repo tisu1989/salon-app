@@ -5,6 +5,7 @@ import { redis } from "./config/redis.js";
 import { services } from "./container.js";
 import { startNotificationWorker } from "./jobs/notification-worker.js";
 import { startNotificationSubscriber } from "./jobs/notification-subscriber.js";
+import { startExportWorker } from "./jobs/export-worker.js";
 
 const app = createApp();
 
@@ -18,6 +19,8 @@ const server = app.listen(env.PORT, () => {
 const subscriber = startNotificationSubscriber(redis, services.notification);
 // Safety net: catches anything the subscriber missed, and discovers/queues reminders.
 const worker = startNotificationWorker(services.notification);
+// Builds whatever's queued in the exports table.
+const exportWorker = startExportWorker(services.export);
 
 const SHUTDOWN_TIMEOUT_MS = 10_000;
 let shuttingDown = false;
@@ -46,6 +49,7 @@ async function shutdown(signal: string): Promise<void> {
       server.close((err) => (err ? reject(err) : resolve())),
     );
     worker.stop();
+    exportWorker.stop();
     await subscriber.stop();
     await redis.quit();
     await prisma.$disconnect();
