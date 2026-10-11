@@ -38,6 +38,10 @@ import { GroqClient } from "./modules/chat/groq.client.js";
 import { ChatService } from "./modules/chat/chat.service.js";
 import { ChatController } from "./modules/chat/chat.controller.js";
 
+import { ExportRepository } from "./modules/export/export.repository.js";
+import { ExportService } from "./modules/export/export.service.js";
+import { ExportController } from "./modules/export/export.controller.js";
+
 const staffRepo = new StaffRepository(prisma);
 const serviceRepo = new ServiceRepository(prisma);
 const appointmentRepo = new AppointmentRepository(prisma);
@@ -75,6 +79,15 @@ const chatService = new ChatService(
   analyticsService,
 );
 
+const exportRepo = new ExportRepository(prisma);
+const exportService = new ExportService(
+  exportRepo,
+  appointmentService,
+  customerRepo,
+  serviceRepo,
+  staffRepo,
+);
+
 export const controllers = {
   auth: new AuthController(authService),
   appointment: new AppointmentController(appointmentService),
@@ -85,9 +98,11 @@ export const controllers = {
   notification: new NotificationController(notificationService),
   analytics: new AnalyticsController(analyticsService),
   chat: new ChatController(chatService),
+  export: new ExportController(exportService),
 };
 
-// Not part of the HTTP surface - server.ts hands this to startNotificationWorker.
+// Not part of the HTTP surface - server.ts hands these to their background workers.
 export const services = {
   notification: notificationService,
+  export: exportService,
 };

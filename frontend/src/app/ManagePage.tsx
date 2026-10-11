@@ -7,6 +7,7 @@ const CARDS = [
   { to: "/staff-availability", title: "Staff availability", meta: "Who's working, who's off, any day" },
   { to: "/services", title: "Services", meta: "Menu, add/edit" },
   { to: "/notifications", title: "Notification log", meta: "Delivery status, manual retry" },
+  { to: "/exports", title: "Exports", meta: "Download appointments as a CSV" },
 ];
 
 export function ManagePage() {

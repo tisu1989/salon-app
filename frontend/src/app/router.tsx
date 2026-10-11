@@ -11,6 +11,7 @@ import { StaffDetailPage } from "../features/staff/StaffDetailPage";
 import { StaffAvailabilityPage } from "../features/staff/StaffAvailabilityPage";
 import { ServiceMenuPage } from "../features/services/ServiceMenuPage";
 import { NotificationLogPage } from "../features/notifications/NotificationLogPage";
+import { ExportsPage } from "../features/exports/ExportsPage";
 import { DashboardPage } from "../features/analytics/DashboardPage";
 import { AppShell } from "./AppShell";
 import { ManagePage } from "./ManagePage";
@@ -36,6 +37,7 @@ export const router = createBrowserRouter([
           { path: "/staff/:id", element: <StaffDetailPage /> },
           { path: "/services", element: <ServiceMenuPage /> },
           { path: "/notifications", element: <NotificationLogPage /> },
+          { path: "/exports", element: <ExportsPage /> },
           { path: "/account", element: <AccountPage /> },
         ],
       },

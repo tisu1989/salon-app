@@ -20,6 +20,7 @@ import { createWhatsappRouter } from "./modules/whatsapp/whatsapp.router.js";
 import { createNotificationRouter } from "./modules/notification/notification.router.js";
 import { createAnalyticsRouter } from "./modules/analytics/analytics.router.js";
 import { createChatRouter } from "./modules/chat/chat.router.js";
+import { createExportRouter } from "./modules/export/export.router.js";
 
 export function createApp(): Express {
   const app = express();
@@ -60,6 +61,7 @@ export function createApp(): Express {
   app.use("/api/v1/notifications", createNotificationRouter(controllers.notification));
   app.use("/api/v1/analytics", createAnalyticsRouter(controllers.analytics));
   app.use("/api/v1/chat", createChatRouter(controllers.chat));
+  app.use("/api/v1/exports", createExportRouter(controllers.export));
   app.use("/webhook", webhookRateLimit, createWhatsappRouter(controllers.whatsapp));
 
   // Must be registered last
